@@ -3,3 +3,8 @@ pandas
 pandas-ta
 scikit-learn
 numpy
+streamlit
+requests
+beautifulsoup4
+lxml
+plotly
