@@ -4,7 +4,7 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 
 ## 🌟 Key Features
 
-- **Technical Analysis Engine:** Uses `pandas-ta` to analyze RSI, MACD, EMA, and Bollinger Bands to generate a weighted recommendation score.
+- **Technical Analysis Engine:** High-performance indicator logic (RSI, MACD, EMA, etc.) implemented in pure `pandas` for maximum compatibility across Python versions.
 - **AI Price Predictor:** A Random Forest Regressor trained on historical technical indicators to forecast the next day's closing price.
 - **ML Pump Detector:** Identifies anomalous volume and price spikes using Z-score classification to alert you to potential market manipulation.
 - **Sentiment & Research Scanner:** Scans Google News RSS feeds for "pump" related keywords and research to gauge market hype.
@@ -16,7 +16,7 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 ## 🛠️ Installation & Setup
 
 ### 1. Prerequisites
-- **Python 3.9+** installed on your system.
+- **Python 3.9 through 3.14+** supported.
 - Basic knowledge of terminal/command prompt usage.
 
 ### 2. Clone and Prepare Environment
@@ -70,6 +70,12 @@ The dashboard provides the most intuitive experience with interactive charts.
 ```bash
 streamlit run dashboard.py
 ```
+
+**Troubleshooting:** If the `streamlit` command is not recognized, use:
+```bash
+python -m streamlit run dashboard.py
+```
+
 - A new tab will open in your browser (usually at `http://localhost:8501`).
 - Enter a ticker (e.g., `NVDA`, `TSLA`, `AAPL`) in the sidebar.
 - Click **Run Analysis** to see the AI's results.

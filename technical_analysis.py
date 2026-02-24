@@ -1,28 +1,71 @@
 import pandas as pd
-import pandas_ta as ta
+import numpy as np
 
 class TechnicalAnalyzer:
     def __init__(self, data: pd.DataFrame):
         self.data = data.copy()
 
+    def _manual_rsi(self, series, length=14):
+        delta = series.diff()
+        gain = delta.where(delta > 0, 0)
+        loss = -delta.where(delta < 0, 0)
+        avg_gain = gain.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
+        avg_loss = loss.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
+        rs = avg_gain / avg_loss
+        return 100 - (100 / (1 + rs))
+
+    def _manual_macd(self, series, fast=12, slow=26, signal=9):
+        fast_ema = series.ewm(span=fast, adjust=False).mean()
+        slow_ema = series.ewm(span=slow, adjust=False).mean()
+        macd = fast_ema - slow_ema
+        macd_signal = macd.ewm(span=signal, adjust=False).mean()
+        macd_hist = macd - macd_signal
+        return macd, macd_hist, macd_signal
+
+    def _manual_sma(self, series, length):
+        return series.rolling(window=length).mean()
+
+    def _manual_ema(self, series, length):
+        return series.ewm(span=length, adjust=False).mean()
+
+    def _manual_bbands(self, series, length=20, std=2):
+        sma = series.rolling(window=length).mean()
+        std_dev = series.rolling(window=length).std()
+        upper = sma + (std_dev * std)
+        lower = sma - (std_dev * std)
+        return lower, sma, upper
+
+    def _manual_atr(self, high, low, close, length=14):
+        tr1 = high - low
+        tr2 = (high - close.shift()).abs()
+        tr3 = (low - close.shift()).abs()
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        return tr.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
+
     def add_all_indicators(self) -> pd.DataFrame:
         """Calculates and adds common technical indicators to the dataframe."""
-        # RSI
-        self.data.ta.rsi(length=14, append=True)
+        # Manual RSI
+        self.data['RSI_14'] = self._manual_rsi(self.data['Close'], length=14)
 
-        # MACD
-        self.data.ta.macd(fast=12, slow=26, signal=9, append=True)
+        # Manual MACD
+        macd, macd_hist, macd_signal = self._manual_macd(self.data['Close'])
+        self.data['MACD_12_26_9'] = macd
+        self.data['MACDh_12_26_9'] = macd_hist
+        self.data['MACDs_12_26_9'] = macd_signal
 
-        # Moving Averages
-        self.data.ta.sma(length=20, append=True)
-        self.data.ta.sma(length=50, append=True)
-        self.data.ta.ema(length=200, append=True)
+        # Manual Moving Averages
+        self.data['SMA_20'] = self._manual_sma(self.data['Close'], 20)
+        self.data['SMA_50'] = self._manual_sma(self.data['Close'], 50)
+        self.data['EMA_200'] = self._manual_ema(self.data['Close'], 200)
 
-        # Bollinger Bands
-        self.data.ta.bbands(length=20, std=2, append=True)
+        # Manual Bollinger Bands
+        lower, mid, upper = self._manual_bbands(self.data['Close'], length=20, std=2)
+        self.data['BBL_20_2.0'] = lower
+        self.data['BBM_20_2.0'] = mid
+        self.data['BBU_20_2.0'] = upper
 
-        # Average True Range (Volatility)
-        self.data.ta.atr(length=14, append=True)
+        # Manual ATR
+        self.data['ATRr_14'] = self._manual_atr(self.data['High'], self.data['Low'], self.data['Close'], length=14)
 
         return self.data
 
@@ -37,13 +80,12 @@ class TechnicalAnalyzer:
         signals = []
         score = 0
 
-        # Column names can vary slightly by pandas_ta version
-        rsi_col = [c for c in self.data.columns if c.startswith('RSI')][0]
-        macd_col = [c for c in self.data.columns if c.startswith('MACD_') and 's' not in c and 'h' not in c][0]
-        macds_col = [c for c in self.data.columns if c.startswith('MACDs_')][0]
-        ema200_col = [c for c in self.data.columns if c.startswith('EMA_200')][0]
-        bbl_col = [c for c in self.data.columns if c.startswith('BBL_')][0]
-        bbu_col = [c for c in self.data.columns if c.startswith('BBU_')][0]
+        rsi_col = 'RSI_14'
+        macd_col = 'MACD_12_26_9'
+        macds_col = 'MACDs_12_26_9'
+        ema200_col = 'EMA_200'
+        bbl_col = 'BBL_20_2.0'
+        bbu_col = 'BBU_20_2.0'
 
         # RSI analysis
         if latest[rsi_col] < 30:
