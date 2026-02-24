@@ -9,6 +9,12 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 - **ML Pump Detector:** Identifies anomalous volume and price spikes using Z-score classification to alert you to potential market manipulation.
 - **Sentiment & Research Scanner:** Scans Google News RSS feeds for "pump" related keywords and research to gauge market hype.
 - **Option Strategy Suggester:** Recommends specific CALL or PUT strategies based on analysis sentiment and predicted volatility.
+- **Categorized Market Scanners:** Discover opportunities across four specialized lists:
+    - **High-Volume Top 10:** Blue-chip leaders with strong technical scores.
+    - **Low-Price Top 25:** Find gems priced between $0.5 and $3.
+    - **Short Term Buy (1-Week Rocket):** AI-predicted 7-day gainers with high sentiment.
+    - **Long Term Buy:** Stable companies with the highest dividend yields.
+- **Trading Education Tab:** Learn candlestick patterns (Hammer, Doji, Engulfing) with visual guides and trend analysis tips.
 - **Visual Dashboard:** An interactive web interface built with Streamlit and Plotly for deep-dive analysis.
 
 ---

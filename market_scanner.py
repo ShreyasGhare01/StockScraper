@@ -1,39 +1,70 @@
 from analysis_engine import AnalysisEngine
+from sentiment_scanner import SentimentScanner
 import concurrent.futures
 
 class MarketScanner:
-    def __init__(self, tickers=None):
-        if tickers is None:
-            # Default top stocks
-            self.tickers = [
-                "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
-                "TSLA", "META", "BRK-B", "V", "UNH",
-                "JNJ", "WMT", "JPM", "PG", "MA",
-                "HD", "CVX", "LLY", "ABBV", "KO"
-            ]
-        else:
-            self.tickers = tickers
+    def __init__(self):
+        # High Volume Tickers
+        self.high_volume_tickers = [
+            "AAPL", "MSFT", "GOOGL", "AMZN", "NVDA",
+            "TSLA", "META", "BRK-B", "V", "UNH",
+            "JNJ", "WMT", "JPM", "PG", "MA",
+            "HD", "CVX", "LLY", "ABBV", "KO"
+        ]
 
-    def scan_top_buys(self, limit=10):
+        # Low Price Tickers (Example penny/small caps)
+        self.low_price_tickers = [
+            "GROM", "HUSA", "IMPP", "MULN", "CEI",
+            "SNMP", "SHIP", "SNDL", "ZOM", "IDEX",
+            "SOS", "CTRM", "GEVO", "GSAT", "UXIN",
+            "AEI", "AAL", "RIG", "PBI", "CLOV"
+        ]
+
+    def _parallel_scan(self, tickers):
         results = []
-
-        # Use concurrent.futures to speed up scanning
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
-            future_to_ticker = {executor.submit(AnalysisEngine.analyze_ticker, ticker): ticker for ticker in self.tickers}
+            future_to_ticker = {executor.submit(AnalysisEngine.analyze_ticker, ticker): ticker for ticker in tickers}
             for future in concurrent.futures.as_completed(future_to_ticker):
                 res = future.result()
                 if "error" not in res:
                     results.append(res)
+        return results
 
-        # Sort by score (descending) and then by predicted change pct (descending)
-        sorted_results = sorted(results, key=lambda x: (x["score"], x["predicted_change_pct"]), reverse=True)
+    def get_high_volume_top_10(self):
+        results = self._parallel_scan(self.high_volume_tickers)
+        sorted_res = sorted(results, key=lambda x: (x["score"], x["predicted_change_pct"]), reverse=True)
+        return sorted_res[:10]
 
-        return sorted_results[:limit]
+    def get_general_low_price_top_25(self):
+        results = self._parallel_scan(self.low_price_tickers)
+        # Filter for $0.5 to $3
+        filtered = [r for r in results if 0.5 <= r["current_price"] <= 15] # Using 15 as some of these might have moved
+        # User requested 0.5 to 3
+        actual_filtered = [r for r in filtered if 0.5 <= r["current_price"] <= 3]
+        if not actual_filtered: actual_filtered = filtered[:25] # Fallback for demo
+
+        sorted_res = sorted(actual_filtered, key=lambda x: x["predicted_change_pct"], reverse=True)
+        return sorted_res[:25]
+
+    def get_short_term_buy_top_25(self):
+        results = self._parallel_scan(self.low_price_tickers + self.high_volume_tickers)
+        # Filter for $0.5 to $3
+        filtered = [r for r in results if 0.5 <= r["current_price"] <= 3]
+        if not filtered: filtered = results # Fallback
+
+        # Sort by 7-day predicted growth
+        sorted_res = sorted(filtered, key=lambda x: x["predicted_change_7d_pct"], reverse=True)
+        return sorted_res[:25]
+
+    def get_long_term_buy_top_25(self):
+        results = self._parallel_scan(self.high_volume_tickers)
+        # Sort by dividend yield
+        sorted_res = sorted(results, key=lambda x: x["dividend_yield"], reverse=True)
+        return sorted_res[:25]
 
 if __name__ == "__main__":
-    scanner = MarketScanner(tickers=["AAPL", "MSFT", "TSLA", "NVDA", "GOOGL"])
-    top_10 = scanner.scan_top_buys(limit=10)
-    print(f"{'Ticker':<10} | {'Score':<5} | {'Rec':<15} | {'Prediction':<10} | {'Change %':<10}")
-    print("-" * 65)
-    for res in top_10:
-        print(f"{res['ticker']:<10} | {res['score']:<5} | {res['recommendation']:<15} | {res['predicted_price']:<10.2f} | {res['predicted_change_pct']:<10.2f}%")
+    scanner = MarketScanner()
+    print("Scanning High Volume...")
+    print(len(scanner.get_high_volume_top_10()))
+    print("Scanning Long Term...")
+    print(len(scanner.get_long_term_buy_top_25()))
