@@ -21,7 +21,7 @@ page = st.sidebar.radio("Navigate", [
 if page == "Individual Stock Analysis":
     st.title("📊 Individual Stock Analysis")
     ticker = st.sidebar.text_input("Enter Ticker Symbol", value="AAPL").upper()
-    period = st.sidebar.selectbox("Select Period", ["1y", "2y", "5y", "max"], index=1)
+    period = st.sidebar.selectbox("Select Period", ["5d", "1mo", "6mo", "1y", "2y", "5y", "max"], index=4)
 
     if st.sidebar.button("Run Analysis"):
         with st.spinner(f"Analyzing {ticker}..."):
