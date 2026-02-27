@@ -42,6 +42,12 @@ class TechnicalAnalyzer:
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
         return tr.ewm(alpha=1/length, min_periods=length, adjust=False).mean()
 
+    def _manual_obv(self, close, volume):
+        return (np.sign(close.diff()) * volume).fillna(0).cumsum()
+
+    def _manual_roc(self, close, length=12):
+        return ((close - close.shift(length)) / close.shift(length)) * 100
+
     def add_all_indicators(self) -> pd.DataFrame:
         """Calculates and adds common technical indicators to the dataframe."""
         # Manual RSI
@@ -66,6 +72,11 @@ class TechnicalAnalyzer:
 
         # Manual ATR
         self.data['ATRr_14'] = self._manual_atr(self.data['High'], self.data['Low'], self.data['Close'], length=14)
+
+        # New Predictive Indicators for ML
+        self.data['OBV'] = self._manual_obv(self.data['Close'], self.data['Volume'])
+        self.data['ROC_12'] = self._manual_roc(self.data['Close'], length=12)
+        self.data['Volatility_20'] = self.data['Close'].rolling(window=20).std()
 
         return self.data
 

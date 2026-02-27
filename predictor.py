@@ -7,13 +7,17 @@ from sklearn.preprocessing import StandardScaler
 class StockPredictor:
     def __init__(self, data: pd.DataFrame):
         self.data = data.dropna()
-        # Using XGBoost for potentially higher accuracy
+        # Using XGBoost with robust defaults to maintain accuracy during bulk scans
         self.model = xgb.XGBRegressor(
             n_estimators=1000,
             learning_rate=0.01,
             max_depth=5,
             subsample=0.8,
             colsample_bytree=0.8,
+            gamma=0.1,            # Minimum loss reduction to split
+            reg_alpha=0.1,        # L1 regularization
+            reg_lambda=1.0,       # L2 regularization
+            min_child_weight=1,   # Prevents overfitting on small noise
             n_jobs=-1,
             random_state=42
         )
