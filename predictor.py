@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 import xgboost as xgb
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
 
 class StockPredictor:
@@ -36,13 +36,46 @@ class StockPredictor:
 
         return X, y
 
-    def train(self):
+    def tune_hyperparameters(self, X, y):
+        """
+        Runs RandomizedSearchCV to find the best XGBoost parameters for the specific data.
+        """
+        param_dist = {
+            'n_estimators': [500, 1000, 1500],
+            'learning_rate': [0.01, 0.05, 0.1],
+            'max_depth': [3, 5, 7],
+            'subsample': [0.7, 0.8, 0.9],
+            'colsample_bytree': [0.7, 0.8, 0.9]
+        }
+
+        search = RandomizedSearchCV(
+            self.model,
+            param_distributions=param_dist,
+            n_iter=5,
+            cv=3,
+            scoring='neg_mean_squared_error',
+            n_jobs=-1,
+            random_state=42
+        )
+        search.fit(X, y)
+        self.model = search.best_estimator_
+        return search.best_params_
+
+    def train(self, optimize=False):
         X, y = self._prepare_data()
         if len(X) < 50:
             raise ValueError("Not enough data to train the model")
 
         X_scaled = self.scaler.fit_transform(X)
-        self.model.fit(X_scaled, y)
+
+        if optimize:
+            try:
+                self.tune_hyperparameters(X_scaled, y)
+            except Exception as e:
+                print(f"Hyperparameter tuning failed, using defaults: {e}")
+                self.model.fit(X_scaled, y)
+        else:
+            self.model.fit(X_scaled, y)
 
     def predict_next_day(self):
         # Use the very last available data point to predict tomorrow

@@ -74,7 +74,7 @@ class AnalysisEngine:
 
             # 3. Price Prediction (Next Day)
             predictor = StockPredictor(data_with_indicators)
-            predictor.train()
+            predictor.train(optimize=True)
             predicted_price = predictor.predict_next_day()
             predicted_change_pct = ((predicted_price - current_price) / current_price) * 100
 
