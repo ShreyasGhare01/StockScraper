@@ -57,7 +57,7 @@ if page == "Individual Stock Analysis":
                     scanner = SentimentScanner()
                     s = scanner.scan_news(ticker)
                     st.progress(scanner.get_pump_score(ticker), text=f"Sentiment Score: {scanner.get_pump_score(ticker)*100:.1f}%")
-                    with st.expander("Headlines"):
+                    with st.expander("Latest Headlines (Live)"):
                         for h in s['latest_headlines']: st.write(f"• {h}")
 
                 # Options

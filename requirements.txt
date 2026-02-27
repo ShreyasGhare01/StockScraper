@@ -9,4 +9,5 @@ lxml
 plotly
 xgboost
 pandas-datareader
-alpha_vantage
+pyfinviz
+setuptools

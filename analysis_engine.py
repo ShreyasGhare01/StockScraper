@@ -106,7 +106,12 @@ class AnalysisEngine:
 
             # 5. Sentiment Score
             sentiment_scanner = SentimentScanner()
+            sentiment_res = sentiment_scanner.scan_news(ticker)
             sentiment_score = sentiment_scanner.get_pump_score(ticker)
+
+            # Add news features to data for XGBoost (Latest context)
+            data_with_indicators['recent_pump_mentions'] = sentiment_res['pump_mentions']
+            data_with_indicators['recent_sentiment_score'] = sentiment_res['sentiment_score']
 
             return {
                 "ticker": ticker,
