@@ -62,6 +62,14 @@ class MarketScanner:
         sorted_res = sorted(results, key=lambda x: x["dividend_yield"], reverse=True)
         return sorted_res[:25]
 
+    def get_top_10_daily_gainers(self):
+        # Scan all tickers to find the absolute best movers
+        all_tickers = list(set(self.high_volume_tickers + self.low_price_tickers))
+        results = self._parallel_scan(all_tickers)
+        # Sort by predicted % increase within a day
+        sorted_res = sorted(results, key=lambda x: x["predicted_change_pct"], reverse=True)
+        return sorted_res[:10]
+
 if __name__ == "__main__":
     scanner = MarketScanner()
     print("Scanning High Volume...")

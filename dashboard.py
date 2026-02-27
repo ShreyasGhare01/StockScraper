@@ -14,6 +14,7 @@ st.sidebar.title("🚀 AI Stock Suite")
 page = st.sidebar.radio("Navigate", [
     "Individual Stock Analysis",
     "Market Scanners",
+    "Top Daily Gainers",
     "Trading Education"
 ])
 
@@ -105,6 +106,49 @@ elif page == "Market Scanners":
                 st.table(pd.DataFrame(display_data))
             else:
                 st.warning("No stocks found matching criteria.")
+
+elif page == "Top Daily Gainers":
+    st.title("🔥 Top Predicted Daily Gainers")
+    st.write("Stocks with the highest predicted percentage increase for the next trading day.")
+
+    if st.button("Calculate Top Gainers"):
+        with st.spinner("Analyzing market momentum..."):
+            scanner = MarketScanner()
+            top_gainers = scanner.get_top_10_daily_gainers()
+
+            if top_gainers:
+                # 1. Table
+                display_data = []
+                for r in top_gainers:
+                    display_data.append({
+                        "Ticker": r["ticker"],
+                        "Price": f"${r['current_price']:.2f}",
+                        "Predicted Price": f"${r['predicted_price']:.2f}",
+                        "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
+                        "Score": r["score"]
+                    })
+                st.table(pd.DataFrame(display_data))
+
+                # 2. Portfolio Simulator ($100)
+                st.divider()
+                st.header("💰 $100 Profit Optimizer")
+                st.write("If the model were given $100 to start the next day, here is how it would optimize profit:")
+
+                best = top_gainers[0]
+                shares = 100 / best['current_price']
+                total_exit = shares * best['predicted_price']
+                profit = total_exit - 100
+                margin = (profit / 100) * 100
+
+                c1, c2, c3 = st.columns(3)
+                c1.metric("Optimal Ticker", best['ticker'])
+                c2.metric("Shares Purchased", f"{shares:.4f}")
+                c3.metric("Predicted Profit", f"${profit:.2f}", f"{margin:+.2f}% Margin")
+
+                st.info(f"**Strategy:** Buy **{shares:.4f}** shares of **{best['ticker']}** at **${best['current_price']:.2f}**. "
+                        f"Expected exit at **${best['predicted_price']:.2f}** for a total value of **${total_exit:.2f}**.")
+            else:
+                st.error("Could not retrieve gainer data.")
 
 elif page == "Trading Education":
     st.title("📚 Trading Education & Pattern Guide")
