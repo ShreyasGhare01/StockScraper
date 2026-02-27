@@ -1,13 +1,22 @@
 import pandas as pd
 import numpy as np
-from sklearn.ensemble import RandomForestRegressor
+import xgboost as xgb
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import StandardScaler
 
 class StockPredictor:
     def __init__(self, data: pd.DataFrame):
         self.data = data.dropna()
-        self.model = RandomForestRegressor(n_estimators=100, random_state=42)
+        # Using XGBoost for potentially higher accuracy
+        self.model = xgb.XGBRegressor(
+            n_estimators=1000,
+            learning_rate=0.01,
+            max_depth=5,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            n_jobs=-1,
+            random_state=42
+        )
         self.scaler = StandardScaler()
         self.feature_cols = []
 

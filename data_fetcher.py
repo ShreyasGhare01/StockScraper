@@ -1,6 +1,8 @@
 import yfinance as yf
 import pandas as pd
+import pandas_datareader.data as web
 from typing import Optional
+from datetime import datetime, timedelta
 
 class StockDataFetcher:
     def __init__(self, ticker: str):
@@ -21,6 +23,24 @@ class StockDataFetcher:
     def get_info(self) -> dict:
         """Returns general stock information."""
         return self.stock.info
+
+    @staticmethod
+    def fetch_macro_data(start_date: datetime, end_date: datetime) -> pd.DataFrame:
+        """
+        Fetches macroeconomic data from FRED.
+        Example: FEDFUNDS (Interest Rate), DGS10 (10-Year Treasury Yield)
+        """
+        try:
+            # Shift start date slightly back to ensure we have enough data to forward fill
+            shifted_start = start_date - timedelta(days=10)
+            macro_data = web.DataReader(['FEDFUNDS', 'DGS10'], 'fred', shifted_start, end_date)
+            # Daily stock data needs daily macro data. FRED data might be monthly (FEDFUNDS) or daily (DGS10).
+            # We forward fill to align with stock trading days.
+            macro_data = macro_data.resample('D').ffill()
+            return macro_data
+        except Exception as e:
+            print(f"Error fetching macro data: {e}")
+            return pd.DataFrame()
 
 if __name__ == "__main__":
     # Test fetcher

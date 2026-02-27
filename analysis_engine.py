@@ -30,6 +30,31 @@ class AnalysisEngine:
             # 2. Technical Analysis
             analyzer = TechnicalAnalyzer(data)
             data_with_indicators = analyzer.add_all_indicators()
+
+            # 2b. Add Macro Data
+            try:
+                # Get start and end dates from data
+                # We need to handle timezone-aware vs naive dates
+                start_date = data.index[0].to_pydatetime()
+                end_date = data.index[-1].to_pydatetime()
+
+                # Strip timezone if it exists (FRED expects naive)
+                if start_date.tzinfo is not None:
+                    start_date = start_date.replace(tzinfo=None)
+                if end_date.tzinfo is not None:
+                    end_date = end_date.replace(tzinfo=None)
+
+                macro_df = fetcher.fetch_macro_data(start_date, end_date)
+                if not macro_df.empty:
+                    # Merge macro data into stock data.
+                    # First make data index naive if it's tz-aware to match macro_df
+                    if data_with_indicators.index.tz is not None:
+                        data_with_indicators.index = data_with_indicators.index.tz_localize(None)
+
+                    data_with_indicators = data_with_indicators.join(macro_df, how='left').ffill()
+            except Exception as e:
+                print(f"Warning: Failed to merge macro data: {e}")
+
             analysis = analyzer.get_signals()
 
             if "error" in analysis:
