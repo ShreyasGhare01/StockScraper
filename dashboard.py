@@ -77,78 +77,92 @@ elif page == "Market Scanners":
     ])
 
     if st.button("Start Market Scan"):
-        with st.spinner("Scanning markets..."):
-            scanner = MarketScanner()
-            if scan_type == "High-Volume Top 10":
-                results = scanner.get_high_volume_top_10()
-            elif scan_type == "General Low Price Top 25 ($0.5 - $3)":
-                results = scanner.get_general_low_price_top_25()
-            elif scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
-                results = scanner.get_short_term_buy_top_25()
-            else:
-                results = scanner.get_long_term_buy_top_25()
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
-            if results:
-                display_data = []
-                for r in results:
-                    row = {
-                        "Ticker": r["ticker"],
-                        "Price": f"${r['current_price']:.2f}",
-                        "Score": r["score"],
-                        "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
-                        "7-Day %": f"{r['predicted_change_7d_pct']:+.2f}%"
-                    }
-                    if scan_type == "Long Term Buy Top 25 (High Dividends)":
-                        row["Div Yield"] = f"{r['dividend_yield']*100:.2f}%"
-                    if scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
-                        row["Sentiment"] = f"{r['sentiment_score']*100:.0f}%"
-                    display_data.append(row)
-                st.table(pd.DataFrame(display_data))
-            else:
-                st.warning("No stocks found matching criteria.")
+        def update_progress(current, total, ticker):
+            pct = current / total
+            progress_bar.progress(pct)
+            status_text.text(f"Analyzing {ticker}... ({current}/{total})")
+
+        scanner = MarketScanner()
+        if scan_type == "High-Volume Top 10":
+            results = scanner.get_high_volume_top_10(callback=update_progress)
+        elif scan_type == "General Low Price Top 25 ($0.5 - $3)":
+            results = scanner.get_general_low_price_top_25(callback=update_progress)
+        elif scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
+            results = scanner.get_short_term_buy_top_25(callback=update_progress)
+        else:
+            results = scanner.get_long_term_buy_top_25(callback=update_progress)
+
+        if results:
+            display_data = []
+            for r in results:
+                row = {
+                    "Ticker": r["ticker"],
+                    "Price": f"${r['current_price']:.2f}",
+                    "Score": r["score"],
+                    "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
+                    "7-Day %": f"{r['predicted_change_7d_pct']:+.2f}%"
+                }
+                if scan_type == "Long Term Buy Top 25 (High Dividends)":
+                    row["Div Yield"] = f"{r['dividend_yield']*100:.2f}%"
+                if scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
+                    row["Sentiment"] = f"{r['sentiment_score']*100:.0f}%"
+                display_data.append(row)
+            st.table(pd.DataFrame(display_data))
+        else:
+            st.warning("No stocks found matching criteria.")
 
 elif page == "Top Daily Gainers":
     st.title("🔥 Top Predicted Daily Gainers")
     st.write("Stocks with the highest predicted percentage increase for the next trading day.")
 
     if st.button("Calculate Top Gainers"):
-        with st.spinner("Analyzing market momentum..."):
-            scanner = MarketScanner()
-            top_gainers = scanner.get_top_10_daily_gainers()
+        progress_bar = st.progress(0)
+        status_text = st.empty()
 
-            if top_gainers:
-                # 1. Table
-                display_data = []
-                for r in top_gainers:
-                    display_data.append({
-                        "Ticker": r["ticker"],
-                        "Price": f"${r['current_price']:.2f}",
-                        "Predicted Price": f"${r['predicted_price']:.2f}",
-                        "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
-                        "Score": r["score"]
-                    })
-                st.table(pd.DataFrame(display_data))
+        def update_progress(current, total, ticker):
+            pct = current / total
+            progress_bar.progress(pct)
+            status_text.text(f"Analyzing {ticker}... ({current}/{total})")
 
-                # 2. Portfolio Simulator ($100)
-                st.divider()
-                st.header("💰 $100 Profit Optimizer")
-                st.write("If the model were given $100 to start the next day, here is how it would optimize profit:")
+        scanner = MarketScanner()
+        top_gainers = scanner.get_top_10_daily_gainers(callback=update_progress)
 
-                best = top_gainers[0]
-                shares = 100 / best['current_price']
-                total_exit = shares * best['predicted_price']
-                profit = total_exit - 100
-                margin = (profit / 100) * 100
+        if top_gainers:
+            # 1. Table
+            display_data = []
+            for r in top_gainers:
+                display_data.append({
+                    "Ticker": r["ticker"],
+                    "Price": f"${r['current_price']:.2f}",
+                    "Predicted Price": f"${r['predicted_price']:.2f}",
+                    "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
+                    "Score": r["score"]
+                })
+            st.table(pd.DataFrame(display_data))
 
-                c1, c2, c3 = st.columns(3)
-                c1.metric("Optimal Ticker", best['ticker'])
-                c2.metric("Shares Purchased", f"{shares:.4f}")
-                c3.metric("Predicted Profit", f"${profit:.2f}", f"{margin:+.2f}% Margin")
+            # 2. Portfolio Simulator ($100)
+            st.divider()
+            st.header("💰 $100 Profit Optimizer")
+            st.write("If the model were given $100 to start the next day, here is how it would optimize profit:")
 
-                st.info(f"**Strategy:** Buy **{shares:.4f}** shares of **{best['ticker']}** at **${best['current_price']:.2f}**. "
-                        f"Expected exit at **${best['predicted_price']:.2f}** for a total value of **${total_exit:.2f}**.")
-            else:
-                st.error("Could not retrieve gainer data.")
+            best = top_gainers[0]
+            shares = 100 / best['current_price']
+            total_exit = shares * best['predicted_price']
+            profit = total_exit - 100
+            margin = (profit / 100) * 100
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Optimal Ticker", best['ticker'])
+            c2.metric("Shares Purchased", f"{shares:.4f}")
+            c3.metric("Predicted Profit", f"${profit:.2f}", f"{margin:+.2f}% Margin")
+
+            st.info(f"**Strategy:** Buy **{shares:.4f}** shares of **{best['ticker']}** at **${best['current_price']:.2f}**. "
+                    f"Expected exit at **${best['predicted_price']:.2f}** for a total value of **${total_exit:.2f}**.")
+        else:
+            st.error("Could not retrieve gainer data.")
 
 elif page == "Trading Education":
     st.title("📚 Trading Education & Pattern Guide")
@@ -162,6 +176,7 @@ elif page == "Trading Education":
             col_text, col_img = st.columns([2, 1])
             with col_text:
                 st.markdown(f"### {p['name']} ({p['type']})")
+                # Add patterned image if available
                 st.write(p['description'])
                 st.info(f"**What it means:** {p['indication']}")
             with col_img:

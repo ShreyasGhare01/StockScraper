@@ -7,7 +7,7 @@ import numpy as np
 
 class AnalysisEngine:
     @staticmethod
-    def analyze_ticker(ticker, period="2y"):
+    def analyze_ticker(ticker, period="2y", optimize=True):
         try:
             # 1. Fetch Data
             fetcher = StockDataFetcher(ticker)
@@ -74,7 +74,7 @@ class AnalysisEngine:
 
             # 3. Price Prediction (Next Day)
             predictor = StockPredictor(data_with_indicators)
-            predictor.train(optimize=True)
+            predictor.train(optimize=optimize)
             predicted_price = predictor.predict_next_day()
             predicted_change_pct = ((predicted_price - current_price) / current_price) * 100
 
