@@ -55,6 +55,18 @@ class AnalysisEngine:
             except Exception as e:
                 print(f"Warning: Failed to merge macro data: {e}")
 
+            # 2c. Add Fundamental & AlphaVantage Sentiment
+            try:
+                fundamentals = fetcher.get_fundamental_data()
+                for key, value in fundamentals.items():
+                    data_with_indicators[key] = value
+
+                # Fetch AlphaVantage sentiment (using demo key)
+                av_sentiment = fetcher.fetch_alpha_vantage_sentiment()
+                data_with_indicators['av_news_sentiment'] = av_sentiment
+            except Exception as e:
+                print(f"Warning: Failed to merge fundamental/AV data: {e}")
+
             analysis = analyzer.get_signals()
 
             if "error" in analysis:

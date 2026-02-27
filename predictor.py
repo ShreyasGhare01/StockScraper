@@ -21,10 +21,9 @@ class StockPredictor:
         self.feature_cols = []
 
     def _prepare_data(self):
-        # Select features: RSI, MACD, SMA, EMA, BB, ATR, etc.
-        # Exclude basic OHLCV from features to avoid data leakage if not careful,
-        # but we use technical indicators which are derived from them.
-        exclude = ['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits']
+        # Select features: RSI, MACD, SMA, EMA, BB, ATR, Macro, Fundamentals, etc.
+        # Exclude basic OHLCV and targets from features to avoid data leakage.
+        exclude = ['Open', 'High', 'Low', 'Close', 'Volume', 'Dividends', 'Stock Splits', 'Target_7d']
         self.feature_cols = [c for c in self.data.columns if c not in exclude]
 
         X = self.data[self.feature_cols]
