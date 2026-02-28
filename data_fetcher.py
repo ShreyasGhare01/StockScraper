@@ -26,6 +26,28 @@ class StockDataFetcher:
         return self.stock.info
 
     @staticmethod
+    def fetch_market_regime(start_date: datetime, end_date: datetime) -> pd.DataFrame:
+        """
+        Fetches market context (SPY/QQQ) returns for regime context.
+        """
+        try:
+            # We use yfinance to get SPY and QQQ
+            spy = yf.Ticker("SPY").history(start=start_date, end=end_date)
+            qqq = yf.Ticker("QQQ").history(start=start_date, end=end_date)
+
+            regime_df = pd.DataFrame(index=spy.index)
+            regime_df['SPY_Return'] = spy['Close'].pct_change()
+            regime_df['QQQ_Return'] = qqq['Close'].pct_change()
+
+            # 20-day volatility percentile (proxy)
+            regime_df['Market_Vol'] = regime_df['SPY_Return'].rolling(20).std()
+
+            return regime_df.fillna(0)
+        except Exception as e:
+            print(f"Error fetching market regime: {e}")
+            return pd.DataFrame()
+
+    @staticmethod
     def fetch_macro_data(start_date: datetime, end_date: datetime) -> pd.DataFrame:
         """
         Fetches macroeconomic data from FRED.
@@ -54,7 +76,10 @@ class StockDataFetcher:
             "eps": info.get("trailingEps") or 0,
             "debt_to_equity": info.get("debtToEquity") or 0,
             "price_to_book": info.get("priceToBook") or 0,
-            "profit_margins": info.get("profitMargins") or 0
+            "profit_margins": info.get("profitMargins") or 0,
+            "short_interest": info.get("shortPercentOfFloat", 0) or 0,
+            "days_to_cover": info.get("shortRatio", 0) or 0,
+            "float_size": info.get("floatShares", 0) or 0
         }
 
     def fetch_alpha_vantage_sentiment(self, api_key: str = "demo") -> float:

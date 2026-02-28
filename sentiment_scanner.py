@@ -78,6 +78,35 @@ class SentimentScanner:
         score = min(results["sentiment_score"] * 5, 1.0)
         return score
 
+    def get_news_metrics(self, ticker):
+        """
+        Calculates news velocity and sentiment velocity.
+        In a real system, we'd store historical scores in a DB.
+        For this prototype, we simulate velocity by comparing current scan to a slightly delayed/filtered one.
+        """
+        res = self.scan_news(ticker)
+        if "error" in res:
+            return {"news_count": 0, "sentiment": 0, "news_velocity": 0, "sentiment_velocity": 0}
+
+        # Real-time velocity simulation (in a real app, this would be current vs historical data)
+        # We simulate historical sentiment by looking at the second half of the headlines
+        headlines = res.get("latest_headlines", [])
+        mid = len(headlines) // 2
+
+        current_sentiment = res["sentiment_score"]
+        if mid > 0:
+            # Simple simulation: older headlines vs newer
+            historical_sentiment = sum(1 for h in headlines[mid:] if any(kw in h.lower() for kw in self.pump_keywords)) / mid
+        else:
+            historical_sentiment = current_sentiment
+
+        return {
+            "news_count": len(headlines),
+            "sentiment": current_sentiment,
+            "news_velocity": len(headlines) / 10.0, # Normalized
+            "sentiment_velocity": current_sentiment - historical_sentiment
+        }
+
 if __name__ == "__main__":
     scanner = SentimentScanner()
     print(f"Scanning for NVDA: {scanner.scan_news('NVDA')}")

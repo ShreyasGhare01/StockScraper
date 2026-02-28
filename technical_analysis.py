@@ -48,6 +48,11 @@ class TechnicalAnalyzer:
     def _manual_roc(self, close, length=12):
         return ((close - close.shift(length)) / close.shift(length)) * 100
 
+    def _manual_zscore(self, series, window=20):
+        mean = series.rolling(window=window).mean()
+        std = series.rolling(window=window).std()
+        return (series - mean) / std
+
     def add_all_indicators(self) -> pd.DataFrame:
         """Calculates and adds common technical indicators to the dataframe."""
         # Manual RSI
@@ -77,6 +82,32 @@ class TechnicalAnalyzer:
         self.data['OBV'] = self._manual_obv(self.data['Close'], self.data['Volume'])
         self.data['ROC_12'] = self._manual_roc(self.data['Close'], length=12)
         self.data['Volatility_20'] = self.data['Close'].rolling(window=20).std()
+
+        # --- Restructuring Step 2 Features ---
+
+        # 1. End-of-Day Momentum (Daily equivalents)
+        # Close position in daily range: (Close - Low) / (High - Low)
+        self.data['Close_Pos_Range'] = (self.data['Close'] - self.data['Low']) / (self.data['High'] - self.data['Low'] + 1e-9)
+        # Gap % from previous open (as requested)
+        self.data['Gap_Prev_Open'] = (self.data['Open'] - self.data['Open'].shift(1)) / (self.data['Open'].shift(1) + 1e-9)
+        # RSI Slope (today - yesterday)
+        self.data['RSI_Slope'] = self.data['RSI_14'].diff()
+        # Distance from 20 EMA (normalized)
+        ema20 = self._manual_ema(self.data['Close'], 20)
+        self.data['EMA20_Dist'] = (self.data['Close'] - ema20) / (ema20 + 1e-9)
+
+        # 2. Volume Acceleration
+        # Volume / 20-day average
+        vol_avg20 = self.data['Volume'].rolling(window=20).mean()
+        self.data['Vol_Rel_Avg'] = self.data['Volume'] / (vol_avg20 + 1e-9)
+        # 3-day volume growth rate
+        self.data['Vol_Growth_3d'] = self.data['Volume'].pct_change(3)
+        # Volume Z-score
+        self.data['Vol_ZScore'] = self._manual_zscore(self.data['Volume'], window=20)
+        # Volume Acceleration (today - yesterday)
+        self.data['Vol_Acceleration'] = self.data['Volume'].diff()
+        # Interaction term: Volume Z-score * Price Momentum (ROC_12)
+        self.data['Vol_Price_Interaction'] = self.data['Vol_ZScore'] * self.data['ROC_12']
 
         return self.data
 

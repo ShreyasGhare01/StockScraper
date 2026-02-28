@@ -45,15 +45,21 @@ class AnalysisEngine:
                     end_date = end_date.replace(tzinfo=None)
 
                 macro_df = fetcher.fetch_macro_data(start_date, end_date)
-                if not macro_df.empty:
-                    # Merge macro data into stock data.
-                    # First make data index naive if it's tz-aware to match macro_df
-                    if data_with_indicators.index.tz is not None:
-                        data_with_indicators.index = data_with_indicators.index.tz_localize(None)
+                regime_df = fetcher.fetch_market_regime(start_date, end_date)
 
+                # Make data index naive if it's tz-aware to match external sources
+                if data_with_indicators.index.tz is not None:
+                    data_with_indicators.index = data_with_indicators.index.tz_localize(None)
+
+                if not macro_df.empty:
                     data_with_indicators = data_with_indicators.join(macro_df, how='left').ffill()
+                if not regime_df.empty:
+                    # Strip regime timezone just in case
+                    if regime_df.index.tz is not None:
+                        regime_df.index = regime_df.index.tz_localize(None)
+                    data_with_indicators = data_with_indicators.join(regime_df, how='left').ffill()
             except Exception as e:
-                print(f"Warning: Failed to merge macro data: {e}")
+                print(f"Warning: Failed to merge macro/regime data: {e}")
 
             # 2c. Add Fundamental & AlphaVantage Sentiment
             try:
@@ -82,14 +88,15 @@ class AnalysisEngine:
             predictor_5day.train(optimize=optimize)
             pred_5day = predictor_5day.predict_probability()
 
-            # 5. Sentiment Score
+            # 5. Sentiment & Velocity metrics
             sentiment_scanner = SentimentScanner()
-            sentiment_res = sentiment_scanner.scan_news(ticker)
-            sentiment_score = sentiment_scanner.get_pump_score(ticker)
+            news_metrics = sentiment_scanner.get_news_metrics(ticker)
 
-            # Add news features to data for XGBoost (Latest context)
-            data_with_indicators['recent_pump_mentions'] = sentiment_res['pump_mentions']
-            data_with_indicators['recent_sentiment_score'] = sentiment_res['sentiment_score']
+            # Add news features to data for XGBoost (Velocity focus)
+            data_with_indicators['news_count'] = news_metrics['news_count']
+            data_with_indicators['news_velocity'] = news_metrics['news_velocity']
+            data_with_indicators['sentiment_velocity'] = news_metrics['sentiment_velocity']
+            data_with_indicators['recent_sentiment'] = news_metrics['sentiment']
 
             return {
                 "ticker": ticker,
@@ -101,7 +108,7 @@ class AnalysisEngine:
                 "recommendation": analysis["recommendation"],
                 "signals": analysis["signals"],
                 "dividend_yield": float(dividend_yield),
-                "sentiment_score": float(sentiment_score),
+                "sentiment_score": float(news_metrics['sentiment']),
                 "data": data_with_indicators
             }
         except Exception as e:
