@@ -80,6 +80,30 @@ if page == "Individual Stock Analysis":
                 trades = strategist.suggest_trades()
                 st.write(trades)
 
+                # Backtest Section
+                st.divider()
+                st.subheader("📈 Historical Backtest (Last 100 Days)")
+                if st.button("Run Historical Backtest"):
+                    with st.spinner("Simulating historical performance..."):
+                        bt = AnalysisEngine.backtest_ticker(ticker, data)
+                        if "error" in bt:
+                            st.error(bt["error"])
+                        else:
+                            c1, c2, c3, c4 = st.columns(4)
+                            c1.metric("Total Return", f"{bt['total_return']*100:.2f}%")
+                            c2.metric("Win Rate", f"{bt['win_rate']*100:.1f}%")
+                            c3.metric("Sharpe Ratio", f"{bt['sharpe_ratio']:.2f}")
+                            c4.metric("Profit Factor", f"{bt['profit_factor']:.2f}")
+
+                            st.metric("Max Drawdown", f"{bt['max_drawdown']*100:.2f}%")
+
+                            # Equity Curve
+                            fig_bt = go.Figure()
+                            fig_bt.add_trace(go.Scatter(y=bt['equity_curve'], name="Equity Curve", line=dict(color='green')))
+                            fig_bt.update_layout(title=f"{ticker} Backtest Equity Curve ($10,000 Starting)", xaxis_title="Trades", yaxis_title="Portfolio Value")
+                            st.plotly_chart(fig_bt, use_container_width=True)
+                            st.write(f"Executed **{bt['num_trades']}** simulated trades over the last 100 trading days.")
+
 elif page == "Market Scanners":
     st.title("🏆 Market Scanning Opportunity Finder")
     scan_type = st.selectbox("Select List Type", [
@@ -203,6 +227,30 @@ elif page == "Trading Education":
 
     st.markdown(info.GENERAL_TRENDS)
 
+    st.divider()
+    st.subheader("📊 Key Performance Metrics Explained")
+    st.write("Understand the numbers behind the strategy to choose the most profitable trades.")
+
+    c1, c2 = st.columns(2)
+    with c1:
+        st.info("### Sharpe Ratio")
+        st.write("**What it is:** A measure of risk-adjusted return.")
+        st.write("**Interpretation:** Higher is better. A Sharpe > 1.0 is good, > 2.0 is very good, and > 3.0 is professional grade. It tells you if your profits are worth the volatility you endure.")
+
+        st.info("### Max Drawdown")
+        st.write("**What it is:** The largest 'peak-to-valley' decline in your account value.")
+        st.write("**Interpretation:** It shows the worst-case scenario. If a backtest shows a 20% drawdown, you should be prepared for your account to drop by that much at some point.")
+
+    with c2:
+        st.success("### Profit Factor")
+        st.write("**What it is:** Total gross profit divided by total gross loss.")
+        st.write("**Interpretation:** A value > 1.0 means the strategy is profitable. A Profit Factor of 2.0 means you make $2 for every $1 you lose.")
+
+        st.success("### Win Rate")
+        st.write("**What it is:** Percentage of trades that result in a profit.")
+        st.write("**Interpretation:** Don't be fooled by high win rates alone! A 90% win rate can still lose money if the losses are huge. Combine this with Profit Factor for a real view.")
+
+    st.divider()
     st.subheader("🕯️ Essential Candlestick Patterns")
     for p in info.PATTERNS:
         with st.container():

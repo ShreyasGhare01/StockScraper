@@ -2,10 +2,45 @@ from data_fetcher import StockDataFetcher
 from technical_analysis import TechnicalAnalyzer
 from predictor import StockPredictor
 from sentiment_scanner import SentimentScanner
+from backtester import Backtester
 import pandas as pd
 import numpy as np
 
 class AnalysisEngine:
+    @staticmethod
+    def backtest_ticker(ticker, data_with_indicators):
+        """
+        Runs a historical backtest for the last 100 days of data.
+        """
+        # We need historical predictions. For backtest, we iterate through last 100 days.
+        # This is expensive, so we'll simulate it by training on a subset.
+        try:
+            # Simple walk-forward:
+            # We'll take the last 150 days. For the last 100 days, we'll "predict"
+            # using a model trained on everything before that point.
+            bt_data = data_with_indicators.tail(150)
+            if len(bt_data) < 100:
+                return {"error": "Insufficient data for backtest"}
+
+            # For prototype speed, we'll train one model on the first 50 and test on last 100.
+            train_data = data_with_indicators.iloc[:-100]
+            test_data = data_with_indicators.tail(100)
+
+            predictor = StockPredictor(train_data, target_type="overnight", mode="edge")
+            predictor.train(optimize=False) # Fast for backtest
+
+            # Predict for all 100 test days
+            # We scale the test data using the scaler from train
+            X_test = test_data[predictor.feature_cols]
+            X_test_scaled = predictor.scaler.transform(X_test)
+            # predict_proba returns [prob_0, prob_1]
+            probs = predictor.model.predict_proba(X_test_scaled)[:, 1]
+
+            backtester = Backtester(test_data, probs)
+            return backtester.run()
+        except Exception as e:
+            return {"error": str(e)}
+
     @staticmethod
     def analyze_ticker(ticker, period="2y", optimize=True, mode="edge"):
         try:
