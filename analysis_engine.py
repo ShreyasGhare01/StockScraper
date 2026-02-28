@@ -7,7 +7,7 @@ import numpy as np
 
 class AnalysisEngine:
     @staticmethod
-    def analyze_ticker(ticker, period="2y", optimize=True):
+    def analyze_ticker(ticker, period="2y", optimize=True, mode="edge"):
         try:
             # 1. Fetch Data
             fetcher = StockDataFetcher(ticker)
@@ -72,15 +72,15 @@ class AnalysisEngine:
             if "error" in analysis:
                 return {"ticker": ticker, "error": analysis["error"]}
 
-            # 3. Overnight Edge Prediction (Classification)
-            predictor_overnight = StockPredictor(data_with_indicators, target_type="overnight")
+            # 3. Overnight Prediction
+            predictor_overnight = StockPredictor(data_with_indicators, target_type="overnight", mode=mode)
             predictor_overnight.train(optimize=optimize)
-            prob_overnight = predictor_overnight.predict_probability()
+            pred_overnight = predictor_overnight.predict_probability()
 
-            # 4. 5-Day Swing Edge Prediction (Classification)
-            predictor_5day = StockPredictor(data_with_indicators, target_type="5day")
+            # 4. 5-Day Prediction
+            predictor_5day = StockPredictor(data_with_indicators, target_type="5day", mode=mode)
             predictor_5day.train(optimize=optimize)
-            prob_5day = predictor_5day.predict_probability()
+            pred_5day = predictor_5day.predict_probability()
 
             # 5. Sentiment Score
             sentiment_scanner = SentimentScanner()
@@ -94,8 +94,9 @@ class AnalysisEngine:
             return {
                 "ticker": ticker,
                 "current_price": float(current_price),
-                "prob_overnight": float(prob_overnight),
-                "prob_5day": float(prob_5day),
+                "pred_overnight": float(pred_overnight),
+                "pred_5day": float(pred_5day),
+                "mode": mode,
                 "score": int(analysis["score"]),
                 "recommendation": analysis["recommendation"],
                 "signals": analysis["signals"],
@@ -113,6 +114,10 @@ if __name__ == "__main__":
     if "error" in res:
         print(f"Error: {res['error']}")
     else:
-        print(f"Ticker: {res['ticker']}, Score: {res['score']}")
-        print(f"Overnight Prob (>2.5%): {res['prob_overnight']*100:.1f}%")
-        print(f"5-Day Prob (>5.0%): {res['prob_5day']*100:.1f}%")
+        print(f"Ticker: {res['ticker']}, Score: {res['score']}, Mode: {res['mode']}")
+        if res['mode'] == "edge":
+            print(f"Overnight Prob (>2.5%): {res['pred_overnight']*100:.1f}%")
+            print(f"5-Day Prob (>5.0%): {res['pred_5day']*100:.1f}%")
+        else:
+            print(f"Predicted Tomorrow: ${res['pred_overnight']:.2f}")
+            print(f"Predicted 1-Week: ${res['pred_5day']:.2f}")

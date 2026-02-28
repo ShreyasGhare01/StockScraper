@@ -11,6 +11,11 @@ import trading_patterns_info as info
 st.set_page_config(page_title="Stock AI Analyzer Pro", layout="wide")
 
 st.sidebar.title("🚀 AI Stock Suite")
+
+# Analysis Mode Selection
+analysis_mode = st.sidebar.radio("Select Analysis Mode", ["Edge Detection (Probabilistic)", "Price Prediction (Regression)"])
+mode_code = "edge" if "Edge" in analysis_mode else "regression"
+
 page = st.sidebar.radio("Navigate", [
     "Individual Stock Analysis",
     "Market Scanners",
@@ -25,7 +30,7 @@ if page == "Individual Stock Analysis":
 
     if st.sidebar.button("Run Analysis"):
         with st.spinner(f"Analyzing {ticker}..."):
-            res = AnalysisEngine.analyze_ticker(ticker, period=period)
+            res = AnalysisEngine.analyze_ticker(ticker, period=period, mode=mode_code)
             if "error" in res:
                 st.error(res["error"])
             else:
@@ -33,8 +38,14 @@ if page == "Individual Stock Analysis":
                 # Display Metrics
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Current Price", f"${res['current_price']:.2f}")
-                col2.metric("Overnight Edge (>2.5%)", f"{res['prob_overnight']*100:.1f}%")
-                col3.metric("5-Day Edge (>5.0%)", f"{res['prob_5day']*100:.1f}%")
+
+                if mode_code == "edge":
+                    col2.metric("Overnight Edge (>2.5%)", f"{res['pred_overnight']*100:.1f}%")
+                    col3.metric("5-Day Edge (>5.0%)", f"{res['pred_5day']*100:.1f}%")
+                else:
+                    col2.metric("Next Day Pred", f"${res['pred_overnight']:.2f}", f"{((res['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%")
+                    col3.metric("5-Day Pred", f"${res['pred_5day']:.2f}", f"{((res['pred_5day']-res['current_price'])/res['current_price'])*100:+.2f}%")
+
                 col4.metric("Score", res["score"], res["recommendation"])
 
                 # Chart
@@ -89,13 +100,13 @@ elif page == "Market Scanners":
 
         scanner = MarketScanner()
         if scan_type == "High-Volume Top 10":
-            results = scanner.get_high_volume_top_10(callback=update_progress)
+            results = scanner.get_high_volume_top_10(callback=update_progress, mode=mode_code)
         elif scan_type == "General Low Price Top 25 ($0.5 - $3)":
-            results = scanner.get_general_low_price_top_25(callback=update_progress)
+            results = scanner.get_general_low_price_top_25(callback=update_progress, mode=mode_code)
         elif scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
-            results = scanner.get_short_term_buy_top_25(callback=update_progress)
+            results = scanner.get_short_term_buy_top_25(callback=update_progress, mode=mode_code)
         else:
-            results = scanner.get_long_term_buy_top_25(callback=update_progress)
+            results = scanner.get_long_term_buy_top_25(callback=update_progress, mode=mode_code)
 
         if results:
             display_data = []
@@ -103,10 +114,14 @@ elif page == "Market Scanners":
                 row = {
                     "Ticker": r["ticker"],
                     "Price": f"${r['current_price']:.2f}",
-                    "Score": r["score"],
-                        "Overnight Edge": f"{r['prob_overnight']*100:.1f}%",
-                        "5-Day Edge": f"{r['prob_5day']*100:.1f}%"
+                    "Score": r["score"]
                 }
+                if mode_code == "edge":
+                    row["Overnight Edge"] = f"{r['pred_overnight']*100:.1f}%"
+                    row["5-Day Edge"] = f"{r['pred_5day']*100:.1f}%"
+                else:
+                    row["Pred Price"] = f"${r['pred_overnight']:.2f}"
+                    row["Next Day %"] = f"{((r['pred_overnight']-r['current_price'])/r['current_price'])*100:+.2f}%"
                 if scan_type == "Long Term Buy Top 25 (High Dividends)":
                     row["Div Yield"] = f"{r['dividend_yield']*100:.2f}%"
                 if scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
@@ -130,19 +145,24 @@ elif page == "Top Daily Gainers":
             status_text.text(f"Analyzing {ticker}... ({current}/{total})")
 
         scanner = MarketScanner()
-        top_gainers = scanner.get_top_10_daily_gainers(callback=update_progress)
+        top_gainers = scanner.get_top_10_daily_gainers(callback=update_progress, mode=mode_code)
 
         if top_gainers:
             # 1. Table
             display_data = []
             for r in top_gainers:
-                display_data.append({
+                row = {
                     "Ticker": r["ticker"],
                     "Price": f"${r['current_price']:.2f}",
-                        "Overnight Edge": f"{r['prob_overnight']*100:.1f}%",
-                        "5-Day Edge": f"{r['prob_5day']*100:.1f}%",
                     "Score": r["score"]
-                })
+                }
+                if mode_code == "edge":
+                    row["Overnight Edge"] = f"{r['pred_overnight']*100:.1f}%"
+                    row["5-Day Edge"] = f"{r['pred_5day']*100:.1f}%"
+                else:
+                    row["Pred Price"] = f"${r['pred_overnight']:.2f}"
+                    row["Next Day %"] = f"{((r['pred_overnight']-r['current_price'])/r['current_price'])*100:+.2f}%"
+                display_data.append(row)
             st.table(pd.DataFrame(display_data))
 
             # 2. Portfolio Simulator ($100)
@@ -152,7 +172,17 @@ elif page == "Top Daily Gainers":
 
             best = top_gainers[0]
             shares = 100 / best['current_price']
-            total_exit = shares * best['predicted_price']
+
+            if mode_code == "edge":
+                # In Edge mode, we assume a win if it hits the threshold
+                predicted_exit = best['current_price'] * 1.025
+                profit_reason = f"This ticker has a **{best['pred_overnight']*100:.1f}%** probability of exceeding a **+2.5%** move."
+            else:
+                # In Regression mode, use the predicted price
+                predicted_exit = best['pred_overnight']
+                profit_reason = f"The model predicts a **{((best['pred_overnight']-best['current_price'])/best['current_price'])*100:+.2f}%** return."
+
+            total_exit = shares * predicted_exit
             profit = total_exit - 100
             margin = (profit / 100) * 100
 
@@ -161,8 +191,7 @@ elif page == "Top Daily Gainers":
             c2.metric("Shares Purchased", f"{shares:.4f}")
             c3.metric("Predicted Profit", f"${profit:.2f}", f"{margin:+.2f}% Margin")
 
-            st.info(f"**Strategy:** Buy **{shares:.4f}** shares of **{best['ticker']}** at **${best['current_price']:.2f}**. "
-                    f"Expected exit at **${best['predicted_price']:.2f}** for a total value of **${total_exit:.2f}**.")
+            st.info(f"**Strategy:** Buy **{shares:.4f}** shares of **{best['ticker']}** at **${best['current_price']:.2f}**. " + profit_reason)
         else:
             st.error("Could not retrieve gainer data.")
 

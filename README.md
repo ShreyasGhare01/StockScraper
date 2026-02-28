@@ -5,7 +5,11 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 ## 🌟 Key Features
 
 - **Technical Analysis Engine:** High-performance indicator logic (RSI, MACD, EMA, etc.) implemented in pure `pandas` for maximum compatibility across Python versions.
-- **AI Price Predictor:** A Random Forest Regressor trained on historical technical indicators to forecast the next day's closing price.
+- **Dual AI Core:** Supports two distinct analysis modes selectable in the dashboard sidebar:
+    - **Edge Detection (Classification):** Forecasts the mathematical probability of significant moves. This is the recommended mode for high-volatility trading.
+        - **Overnight Edge**: Probability that the stock will increase by more than **+2.5%** by the next trading day's close.
+        - **5-Day Swing Edge**: Probability that the stock will achieve a maximum return of at least **+5.0%** at some point within the next 5 trading days.
+    - **Price Prediction (Regression):** Traditional time-series forecasting of the exact closing price for the next day and the next week.
 - **ML Pump Detector:** Identifies anomalous volume and price spikes using Z-score classification to alert you to potential market manipulation.
 - **Sentiment & Research Scanner:** Scans Google News RSS feeds for "pump" related keywords and research to gauge market hype.
 - **Option Strategy Suggester:** Recommends specific CALL or PUT strategies based on analysis sentiment and predicted volatility.
