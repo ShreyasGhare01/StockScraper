@@ -125,16 +125,37 @@ class StockPredictor:
         if len(X) < 50:
             raise ValueError("Not enough data to train the model")
 
-        X_scaled = self.scaler.fit_transform(X)
+        # Time-based split for local validation
+        split_idx = int(len(X) * 0.8)
+        X_train, X_val = X.iloc[:split_idx], X.iloc[split_idx:]
+        y_train, y_val = y.iloc[:split_idx], y.iloc[split_idx:]
+
+        self.scaler.fit(X_train)
+        X_train_scaled = self.scaler.transform(X_train)
+        X_val_scaled = self.scaler.transform(X_val)
 
         if optimize:
             try:
-                self.tune_hyperparameters(X_scaled, y)
+                self.tune_hyperparameters(X_train_scaled, y_train)
             except Exception as e:
                 print(f"Hyperparameter tuning failed, using defaults: {e}")
-                self.model.fit(X_scaled, y)
+
+        self.model.fit(X_train_scaled, y_train)
+
+        # Calculate Accuracy Score
+        if self.mode == "edge":
+            # For classification: Accuracy on validation set
+            preds = self.model.predict(X_val_scaled)
+            self.accuracy_score = (preds == y_val).mean()
         else:
-            self.model.fit(X_scaled, y)
+            # For regression: 1 - MAPE
+            preds = self.model.predict(X_val_scaled)
+            mape = np.mean(np.abs((y_val - preds) / y_val))
+            self.accuracy_score = max(0, 1 - mape)
+
+        # Retrain on full data for final prediction
+        X_full_scaled = self.scaler.fit_transform(X)
+        self.model.fit(X_full_scaled, y)
 
     def calculate_expected_value(self, probability):
         """

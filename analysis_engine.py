@@ -140,6 +140,8 @@ class AnalysisEngine:
                 "pred_5day": float(pred_5day),
                 "ev_overnight": float(ev_overnight),
                 "ev_5day": float(ev_5day),
+                "acc_overnight": float(predictor_overnight.accuracy_score),
+                "acc_5day": float(predictor_5day.accuracy_score),
                 "mode": mode,
                 "score": int(analysis["score"]),
                 "recommendation": analysis["recommendation"],

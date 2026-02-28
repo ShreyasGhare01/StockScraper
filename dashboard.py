@@ -42,9 +42,11 @@ if page == "Individual Stock Analysis":
                 if mode_code == "edge":
                     col2.metric("Overnight EV", f"{res['ev_overnight']*100:.2f}%", f"{res['pred_overnight']*100:.1f}% Prob")
                     col3.metric("5-Day EV", f"{res['ev_5day']*100:.2f}%", f"{res['pred_5day']*100:.1f}% Prob")
+                    st.caption(f"Model Reliability: Overnight ({res['acc_overnight']*100:.1f}%) | 5-Day ({res['acc_5day']*100:.1f}%)")
                 else:
                     col2.metric("Next Day Pred", f"${res['pred_overnight']:.2f}", f"{((res['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%")
                     col3.metric("5-Day Pred", f"${res['pred_5day']:.2f}", f"{((res['pred_5day']-res['current_price'])/res['current_price'])*100:+.2f}%")
+                    st.caption(f"Model Accuracy (1-MAPE): Tomorrow ({res['acc_overnight']*100:.1f}%) | 1-Week ({res['acc_5day']*100:.1f}%)")
 
                 col4.metric("Score", res["score"], res["recommendation"])
 
