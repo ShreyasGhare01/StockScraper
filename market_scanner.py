@@ -37,7 +37,8 @@ class MarketScanner:
     def get_high_volume_top_10(self, callback=None, mode="edge"):
         results = self._parallel_scan(self.high_volume_tickers, callback=callback, mode=mode)
         if mode == "edge":
-            sorted_res = sorted(results, key=lambda x: (x["pred_overnight"], x["score"]), reverse=True)
+            # Sort by Overnight Expected Value
+            sorted_res = sorted(results, key=lambda x: (x["ev_overnight"], x["score"]), reverse=True)
         else:
             sorted_res = sorted(results, key=lambda x: (x["pred_overnight"] - x["current_price"]), reverse=True)
         return sorted_res[:10]
@@ -48,7 +49,8 @@ class MarketScanner:
         if not filtered: filtered = sorted(results, key=lambda x: x["current_price"])[:25]
 
         if mode == "edge":
-            sorted_res = sorted(filtered, key=lambda x: x["pred_5day"], reverse=True)
+            # Sort by 5-day Expected Value
+            sorted_res = sorted(filtered, key=lambda x: x["ev_5day"], reverse=True)
         else:
             sorted_res = sorted(filtered, key=lambda x: (x["pred_overnight"] / x["current_price"]), reverse=True)
         return sorted_res[:25]
@@ -59,7 +61,8 @@ class MarketScanner:
         if not filtered: filtered = results
 
         if mode == "edge":
-            sorted_res = sorted(filtered, key=lambda x: x["pred_5day"], reverse=True)
+            # Sort by 5-day Expected Value
+            sorted_res = sorted(filtered, key=lambda x: x["ev_5day"], reverse=True)
         else:
             sorted_res = sorted(filtered, key=lambda x: (x["pred_5day"] / x["current_price"]), reverse=True)
         return sorted_res[:25]
@@ -76,7 +79,8 @@ class MarketScanner:
         results = self._parallel_scan(all_tickers, callback=callback, mode=mode)
 
         if mode == "edge":
-            sorted_res = sorted(results, key=lambda x: x["pred_overnight"], reverse=True)
+            # Sort by highest Overnight Expected Value
+            sorted_res = sorted(results, key=lambda x: x["ev_overnight"], reverse=True)
         else:
             sorted_res = sorted(results, key=lambda x: (x["pred_overnight"] / x["current_price"]), reverse=True)
         return sorted_res[:10]

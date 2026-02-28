@@ -81,12 +81,12 @@ class AnalysisEngine:
             # 3. Overnight Prediction
             predictor_overnight = StockPredictor(data_with_indicators, target_type="overnight", mode=mode)
             predictor_overnight.train(optimize=optimize)
-            pred_overnight = predictor_overnight.predict_probability()
+            pred_overnight, ev_overnight = predictor_overnight.predict_probability()
 
             # 4. 5-Day Prediction
             predictor_5day = StockPredictor(data_with_indicators, target_type="5day", mode=mode)
             predictor_5day.train(optimize=optimize)
-            pred_5day = predictor_5day.predict_probability()
+            pred_5day, ev_5day = predictor_5day.predict_probability()
 
             # 5. Sentiment & Velocity metrics
             sentiment_scanner = SentimentScanner()
@@ -103,6 +103,8 @@ class AnalysisEngine:
                 "current_price": float(current_price),
                 "pred_overnight": float(pred_overnight),
                 "pred_5day": float(pred_5day),
+                "ev_overnight": float(ev_overnight),
+                "ev_5day": float(ev_5day),
                 "mode": mode,
                 "score": int(analysis["score"]),
                 "recommendation": analysis["recommendation"],
@@ -123,8 +125,8 @@ if __name__ == "__main__":
     else:
         print(f"Ticker: {res['ticker']}, Score: {res['score']}, Mode: {res['mode']}")
         if res['mode'] == "edge":
-            print(f"Overnight Prob (>2.5%): {res['pred_overnight']*100:.1f}%")
-            print(f"5-Day Prob (>5.0%): {res['pred_5day']*100:.1f}%")
+            print(f"Overnight Prob (>2.5%): {res['pred_overnight']*100:.1f}% (EV: {res['ev_overnight']*100:.2f}%)")
+            print(f"5-Day Prob (>5.0%): {res['pred_5day']*100:.1f}% (EV: {res['ev_5day']*100:.2f}%)")
         else:
             print(f"Predicted Tomorrow: ${res['pred_overnight']:.2f}")
             print(f"Predicted 1-Week: ${res['pred_5day']:.2f}")

@@ -40,8 +40,8 @@ if page == "Individual Stock Analysis":
                 col1.metric("Current Price", f"${res['current_price']:.2f}")
 
                 if mode_code == "edge":
-                    col2.metric("Overnight Edge (>2.5%)", f"{res['pred_overnight']*100:.1f}%")
-                    col3.metric("5-Day Edge (>5.0%)", f"{res['pred_5day']*100:.1f}%")
+                    col2.metric("Overnight EV", f"{res['ev_overnight']*100:.2f}%", f"{res['pred_overnight']*100:.1f}% Prob")
+                    col3.metric("5-Day EV", f"{res['ev_5day']*100:.2f}%", f"{res['pred_5day']*100:.1f}% Prob")
                 else:
                     col2.metric("Next Day Pred", f"${res['pred_overnight']:.2f}", f"{((res['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%")
                     col3.metric("5-Day Pred", f"${res['pred_5day']:.2f}", f"{((res['pred_5day']-res['current_price'])/res['current_price'])*100:+.2f}%")
@@ -117,8 +117,10 @@ elif page == "Market Scanners":
                     "Score": r["score"]
                 }
                 if mode_code == "edge":
-                    row["Overnight Edge"] = f"{r['pred_overnight']*100:.1f}%"
-                    row["5-Day Edge"] = f"{r['pred_5day']*100:.1f}%"
+                    row["Overnight EV"] = f"{r['ev_overnight']*100:.2f}%"
+                    row["5-Day EV"] = f"{r['ev_5day']*100:.2f}%"
+                    row["Overnight EV"] = f"{r['ev_overnight']*100:.2f}%"
+                    row["5-Day EV"] = f"{r['ev_5day']*100:.2f}%"
                 else:
                     row["Pred Price"] = f"${r['pred_overnight']:.2f}"
                     row["Next Day %"] = f"{((r['pred_overnight']-r['current_price'])/r['current_price'])*100:+.2f}%"
@@ -157,8 +159,8 @@ elif page == "Top Daily Gainers":
                     "Score": r["score"]
                 }
                 if mode_code == "edge":
-                    row["Overnight Edge"] = f"{r['pred_overnight']*100:.1f}%"
-                    row["5-Day Edge"] = f"{r['pred_5day']*100:.1f}%"
+                    row["Overnight EV"] = f"{r['ev_overnight']*100:.2f}%"
+                    row["5-Day EV"] = f"{r['ev_5day']*100:.2f}%"
                 else:
                     row["Pred Price"] = f"${r['pred_overnight']:.2f}"
                     row["Next Day %"] = f"{((r['pred_overnight']-r['current_price'])/r['current_price'])*100:+.2f}%"
@@ -176,7 +178,7 @@ elif page == "Top Daily Gainers":
             if mode_code == "edge":
                 # In Edge mode, we assume a win if it hits the threshold
                 predicted_exit = best['current_price'] * 1.025
-                profit_reason = f"This ticker has a **{best['pred_overnight']*100:.1f}%** probability of exceeding a **+2.5%** move."
+                profit_reason = f"This ticker has a **{best['ev_overnight']*100:.2f}%** Expected Value with a **{best['pred_overnight']*100:.1f}%** probability."
             else:
                 # In Regression mode, use the predicted price
                 predicted_exit = best['pred_overnight']

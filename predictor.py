@@ -136,6 +136,30 @@ class StockPredictor:
         else:
             self.model.fit(X_scaled, y)
 
+    def calculate_expected_value(self, probability):
+        """
+        EV = P(up) * Avg Gain - P(down) * Avg Loss
+        """
+        if self.target_type == "overnight":
+            returns = (self.data['Close'].shift(-1) - self.data['Close']) / self.data['Close']
+            threshold = 0.025
+        else:
+            # Approx for 5d
+            returns = (self.data['Close'].shift(-5) - self.data['Close']) / self.data['Close']
+            threshold = 0.05
+
+        wins = returns[returns > threshold]
+        losses = returns[returns < -threshold]
+
+        avg_gain = wins.mean() if not wins.empty else threshold
+        avg_loss = abs(losses.mean()) if not losses.empty else threshold
+
+        p_up = probability
+        p_down = 1 - p_up
+
+        ev = (p_up * avg_gain) - (p_down * avg_loss)
+        return ev, avg_gain, avg_loss
+
     def predict_probability(self):
         # Use the very last available data point to predict probability of target
         last_row = self.data[self.feature_cols].tail(1)
@@ -143,11 +167,13 @@ class StockPredictor:
         if self.mode == "edge":
             # Returns probability of class 1
             probs = self.model.predict_proba(last_row_scaled)[0]
-            return probs[1]
+            prob = float(probs[1])
+            ev, _, _ = self.calculate_expected_value(prob)
+            return prob, ev
         else:
             # For regression, we return the raw predicted value
             prediction = self.model.predict(last_row_scaled)
-            return prediction[0]
+            return float(prediction[0]), 0.0
 
 if __name__ == "__main__":
     from data_fetcher import StockDataFetcher
@@ -160,7 +186,8 @@ if __name__ == "__main__":
 
     predictor = StockPredictor(data_with_indicators, target_type="overnight")
     predictor.train()
-    prob = predictor.predict_probability()
+    prob, ev = predictor.predict_probability()
 
     print(f"Ticker: AAPL")
     print(f"Overnight Edge Probability (>2.5%): {prob*100:.1f}%")
+    print(f"Expected Value: {ev*100:.2f}%")

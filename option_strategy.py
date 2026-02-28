@@ -10,10 +10,15 @@ class OptionStrategist:
 
     def suggest_trades(self):
         recommendation = self.analysis.get("recommendation", "Neutral")
-        prob_overnight = self.analysis.get("prob_overnight", 0.5)
-        prob_5day = self.analysis.get("prob_5day", 0.5)
+        # Ensure we use correct keys from unified results
+        prob_overnight = self.analysis.get("pred_overnight", 0.5)
+        prob_5day = self.analysis.get("pred_5day", 0.5)
 
-        atr_col = [c for c in self.data.columns if c.startswith('ATRr_')][0]
+        # Guard against missing ATR
+        atr_cols = [c for c in self.data.columns if c.startswith('ATRr_')]
+        if not atr_cols:
+            return "No clear option trade suggested: Technical data (ATR) missing."
+        atr_col = atr_cols[0]
         latest_atr = self.data[atr_col].iloc[-1]
 
         trades = []
