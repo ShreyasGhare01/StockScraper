@@ -27,20 +27,25 @@ def main():
         data_with_indicators = analyzer.add_all_indicators()
         analysis = analyzer.get_signals()
 
-        # 3. Price Prediction
-        predictor = StockPredictor(data_with_indicators)
-        predictor.train()
-        predicted_price = predictor.predict_next_day()
+        # 3. Edge Prediction (Classification)
+        predictor_overnight = StockPredictor(data_with_indicators, target_type="overnight")
+        predictor_overnight.train()
+        prob_overnight = predictor_overnight.predict_probability()
+
+        predictor_5day = StockPredictor(data_with_indicators, target_type="5day")
+        predictor_5day.train()
+        prob_5day = predictor_5day.predict_probability()
 
         # 4. Option Strategy
-        strategist = OptionStrategist(ticker, current_price, predicted_price, analysis, data_with_indicators)
+        analysis['prob_overnight'] = prob_overnight
+        analysis['prob_5day'] = prob_5day
+        strategist = OptionStrategist(ticker, current_price, analysis, data_with_indicators)
         trades = strategist.suggest_trades()
 
         # Display Results
         print(f"Current Price: ${current_price:.2f}")
-        print(f"Predicted Price (Next Day): ${predicted_price:.2f}")
-        predicted_change = ((predicted_price - current_price) / current_price) * 100
-        print(f"Expected Movement: {predicted_change:+.2f}%")
+        print(f"Overnight Edge Prob (>2.5%): {prob_overnight*100:.1f}%")
+        print(f"5-Day Edge Prob (>5.0%): {prob_5day*100:.1f}%")
 
         print(f"\nTechnical Analysis Recommendation: {analysis['recommendation']}")
         print(f"Score: {analysis['score']}")

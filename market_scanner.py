@@ -36,18 +36,18 @@ class MarketScanner:
 
     def get_high_volume_top_10(self, callback=None):
         results = self._parallel_scan(self.high_volume_tickers, callback=callback)
-        sorted_res = sorted(results, key=lambda x: (x["score"], x["predicted_change_pct"]), reverse=True)
+        # Sort by Overnight Prob and then Score
+        sorted_res = sorted(results, key=lambda x: (x["prob_overnight"], x["score"]), reverse=True)
         return sorted_res[:10]
 
     def get_general_low_price_top_25(self, callback=None):
         results = self._parallel_scan(self.low_price_tickers, callback=callback)
         # Filter for $0.5 to $3
-        filtered = [r for r in results if 0.5 <= r["current_price"] <= 15] # Using 15 as some of these might have moved
-        # User requested 0.5 to 3
-        actual_filtered = [r for r in filtered if 0.5 <= r["current_price"] <= 3]
-        if not actual_filtered: actual_filtered = filtered[:25] # Fallback for demo
+        filtered = [r for r in results if 0.5 <= r["current_price"] <= 3]
+        if not filtered: filtered = sorted(results, key=lambda x: x["current_price"])[:25] # Fallback
 
-        sorted_res = sorted(actual_filtered, key=lambda x: x["predicted_change_pct"], reverse=True)
+        # Sort by 5-day edge probability
+        sorted_res = sorted(filtered, key=lambda x: x["prob_5day"], reverse=True)
         return sorted_res[:25]
 
     def get_short_term_buy_top_25(self, callback=None):
@@ -56,8 +56,8 @@ class MarketScanner:
         filtered = [r for r in results if 0.5 <= r["current_price"] <= 3]
         if not filtered: filtered = results # Fallback
 
-        # Sort by 7-day predicted growth
-        sorted_res = sorted(filtered, key=lambda x: x["predicted_change_7d_pct"], reverse=True)
+        # Sort by 5-day predicted edge
+        sorted_res = sorted(filtered, key=lambda x: x["prob_5day"], reverse=True)
         return sorted_res[:25]
 
     def get_long_term_buy_top_25(self, callback=None):
@@ -70,8 +70,8 @@ class MarketScanner:
         # Scan all tickers to find the absolute best movers
         all_tickers = list(set(self.high_volume_tickers + self.low_price_tickers))
         results = self._parallel_scan(all_tickers, callback=callback)
-        # Sort by predicted % increase within a day
-        sorted_res = sorted(results, key=lambda x: x["predicted_change_pct"], reverse=True)
+        # Sort by highest probability of a 2.5%+ overnight move
+        sorted_res = sorted(results, key=lambda x: x["prob_overnight"], reverse=True)
         return sorted_res[:10]
 
 if __name__ == "__main__":

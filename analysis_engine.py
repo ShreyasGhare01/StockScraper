@@ -72,37 +72,15 @@ class AnalysisEngine:
             if "error" in analysis:
                 return {"ticker": ticker, "error": analysis["error"]}
 
-            # 3. Price Prediction (Next Day)
-            predictor = StockPredictor(data_with_indicators)
-            predictor.train(optimize=optimize)
-            predicted_price = predictor.predict_next_day()
-            predicted_change_pct = ((predicted_price - current_price) / current_price) * 100
+            # 3. Overnight Edge Prediction (Classification)
+            predictor_overnight = StockPredictor(data_with_indicators, target_type="overnight")
+            predictor_overnight.train(optimize=optimize)
+            prob_overnight = predictor_overnight.predict_probability()
 
-            # 4. Short-term Prediction (7-Day)
-            # Add target for 7-day prediction
-            df_7d = data_with_indicators.copy()
-            df_7d['Target_7d'] = df_7d['Close'].shift(-5) # 5 trading days approx 1 week
-            df_7d_train = df_7d.dropna()
-
-            if len(df_7d_train) > 50:
-                predictor_7d = StockPredictor(data_with_indicators)
-                predictor_7d.data = df_7d_train # Train on shifted data
-                # Re-run preparation logic locally or use existing feature_cols
-                X_train = df_7d_train[[c for c in df_7d_train.columns if c in predictor.feature_cols]]
-                y_train = df_7d_train['Target_7d']
-
-                predictor_7d.scaler.fit(X_train)
-                X_scaled = predictor_7d.scaler.transform(X_train)
-                predictor_7d.model.fit(X_scaled, y_train)
-
-                # Predict 7 days out using latest available features
-                last_row = data_with_indicators[[c for c in data_with_indicators.columns if c in predictor.feature_cols]].tail(1)
-                last_row_scaled = predictor_7d.scaler.transform(last_row)
-                predicted_price_7d = predictor_7d.model.predict(last_row_scaled)[0]
-                predicted_change_7d_pct = ((predicted_price_7d - current_price) / current_price) * 100
-            else:
-                predicted_price_7d = predicted_price
-                predicted_change_7d_pct = predicted_change_pct
+            # 4. 5-Day Swing Edge Prediction (Classification)
+            predictor_5day = StockPredictor(data_with_indicators, target_type="5day")
+            predictor_5day.train(optimize=optimize)
+            prob_5day = predictor_5day.predict_probability()
 
             # 5. Sentiment Score
             sentiment_scanner = SentimentScanner()
@@ -116,10 +94,8 @@ class AnalysisEngine:
             return {
                 "ticker": ticker,
                 "current_price": float(current_price),
-                "predicted_price": float(predicted_price),
-                "predicted_change_pct": float(predicted_change_pct),
-                "predicted_price_7d": float(predicted_price_7d),
-                "predicted_change_7d_pct": float(predicted_change_7d_pct),
+                "prob_overnight": float(prob_overnight),
+                "prob_5day": float(prob_5day),
                 "score": int(analysis["score"]),
                 "recommendation": analysis["recommendation"],
                 "signals": analysis["signals"],
@@ -137,4 +113,6 @@ if __name__ == "__main__":
     if "error" in res:
         print(f"Error: {res['error']}")
     else:
-        print(f"Ticker: {res['ticker']}, Score: {res['score']}, Div: {res['dividend_yield']}, 7d Change: {res['predicted_change_7d_pct']:.2f}%")
+        print(f"Ticker: {res['ticker']}, Score: {res['score']}")
+        print(f"Overnight Prob (>2.5%): {res['prob_overnight']*100:.1f}%")
+        print(f"5-Day Prob (>5.0%): {res['prob_5day']*100:.1f}%")

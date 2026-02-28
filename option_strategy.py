@@ -2,61 +2,54 @@ import pandas as pd
 import numpy as np
 
 class OptionStrategist:
-    def __init__(self, ticker: str, current_price: float, prediction: float, analysis: dict, data: pd.DataFrame):
+    def __init__(self, ticker: str, current_price: float, analysis: dict, data: pd.DataFrame):
         self.ticker = ticker
         self.current_price = current_price
-        self.prediction = prediction
         self.analysis = analysis
         self.data = data
 
     def suggest_trades(self):
         recommendation = self.analysis.get("recommendation", "Neutral")
-        predicted_change_pct = ((self.prediction - self.current_price) / self.current_price) * 100
+        prob_overnight = self.analysis.get("prob_overnight", 0.5)
+        prob_5day = self.analysis.get("prob_5day", 0.5)
 
         atr_col = [c for c in self.data.columns if c.startswith('ATRr_')][0]
         latest_atr = self.data[atr_col].iloc[-1]
 
         trades = []
 
-        # Bullish Strategy
-        if recommendation in ["Buy", "Strong Buy"] and predicted_change_pct > 0.5:
-            # Check if predicted move is significant relative to volatility (ATR)
-            is_significant = (self.prediction - self.current_price) > (latest_atr * 0.5)
-
+        # Bullish Strategy based on Edge Probabilities
+        if recommendation in ["Buy", "Strong Buy"] and (prob_overnight > 0.55 or prob_5day > 0.55):
             strike_price = round(self.current_price)
-            if recommendation == "Strong Buy" and is_significant:
+            # High confidence = Aggressive
+            if (prob_overnight > 0.7 or prob_5day > 0.7):
                 strategy_type = "Aggressive Call"
-                strike_price = round(self.current_price + latest_atr) # OTM by 1 ATR
+                strike_price = round(self.current_price + latest_atr) # OTM
+                reason = f"High confidence ({max(prob_overnight, prob_5day)*100:.1f}%) in edge move."
             else:
                 strategy_type = "Conservative Call"
                 strike_price = round(self.current_price) # ATM
+                reason = f"Moderate confidence ({max(prob_overnight, prob_5day)*100:.1f}%) in edge move."
 
             trades.append({
                 "type": "CALL",
                 "strategy": strategy_type,
                 "strike": strike_price,
                 "expiry": "14-30 days",
-                "reason": f"Bullish indicators and predicted upward movement of {predicted_change_pct:.2f}% (Volatility ATR: {latest_atr:.2f})"
+                "reason": reason + f" (ATR: {latest_atr:.2f})"
             })
 
-        # Bearish Strategy
-        elif recommendation in ["Sell", "Strong Sell"] and predicted_change_pct < -0.5:
-            is_significant = (self.current_price - self.prediction) > (latest_atr * 0.5)
+        # Bearish Strategy (If edge probs are low, could imply bearish or neutral)
+        # Note: Our current model only predicts UP edges. In a real system, we'd have DOWN edges too.
+        # For now, let's stick to Buy/Strong Buy based on the provided request to show "Strong Buys".
 
-            strike_price = round(self.current_price)
-            if recommendation == "Strong Sell" and is_significant:
-                strategy_type = "Aggressive Put"
-                strike_price = round(self.current_price - latest_atr) # OTM by 1 ATR
-            else:
-                strategy_type = "Conservative Put"
-                strike_price = round(self.current_price) # ATM
-
+        elif recommendation in ["Sell", "Strong Sell"]:
             trades.append({
                 "type": "PUT",
-                "strategy": strategy_type,
-                "strike": strike_price,
+                "strategy": "Protective Put / Sell",
+                "strike": round(self.current_price),
                 "expiry": "14-30 days",
-                "reason": f"Bearish indicators and predicted downward movement of {predicted_change_pct:.2f}% (Volatility ATR: {latest_atr:.2f})"
+                "reason": "Bearish technical indicators suggest hedging or exiting."
             })
 
         # Volatility Strategy (Straddle/Strangle if high ATR but uncertain direction)
@@ -69,6 +62,6 @@ class OptionStrategist:
 
 if __name__ == "__main__":
     # Test with dummy data
-    dummy_analysis = {"recommendation": "Strong Buy", "score": 4}
-    strategist = OptionStrategist("AAPL", 150.0, 155.0, dummy_analysis, pd.DataFrame({'ATRr_14': [2.0]}))
+    dummy_analysis = {"recommendation": "Strong Buy", "score": 4, "prob_overnight": 0.75, "prob_5day": 0.6}
+    strategist = OptionStrategist("AAPL", 150.0, dummy_analysis, pd.DataFrame({'ATRr_14': [2.0]}))
     print(strategist.suggest_trades())

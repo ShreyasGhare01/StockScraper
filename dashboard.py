@@ -33,8 +33,8 @@ if page == "Individual Stock Analysis":
                 # Display Metrics
                 col1, col2, col3, col4 = st.columns(4)
                 col1.metric("Current Price", f"${res['current_price']:.2f}")
-                col2.metric("Next Day Pred", f"${res['predicted_price']:.2f}", f"{res['predicted_change_pct']:+.2f}%")
-                col3.metric("7-Day Pred", f"${res['predicted_price_7d']:.2f}", f"{res['predicted_change_7d_pct']:+.2f}%")
+                col2.metric("Overnight Edge (>2.5%)", f"{res['prob_overnight']*100:.1f}%")
+                col3.metric("5-Day Edge (>5.0%)", f"{res['prob_5day']*100:.1f}%")
                 col4.metric("Score", res["score"], res["recommendation"])
 
                 # Chart
@@ -63,7 +63,9 @@ if page == "Individual Stock Analysis":
 
                 # Options
                 st.subheader("💡 Suggested Options")
-                strategist = OptionStrategist(ticker, res['current_price'], res['predicted_price'], {"recommendation": res['recommendation'], "score": res['score']}, data)
+                # Pass probabilities to strategist
+                analysis_enhanced = res.copy()
+                strategist = OptionStrategist(ticker, res['current_price'], analysis_enhanced, data)
                 trades = strategist.suggest_trades()
                 st.write(trades)
 
@@ -102,8 +104,8 @@ elif page == "Market Scanners":
                     "Ticker": r["ticker"],
                     "Price": f"${r['current_price']:.2f}",
                     "Score": r["score"],
-                    "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
-                    "7-Day %": f"{r['predicted_change_7d_pct']:+.2f}%"
+                        "Overnight Edge": f"{r['prob_overnight']*100:.1f}%",
+                        "5-Day Edge": f"{r['prob_5day']*100:.1f}%"
                 }
                 if scan_type == "Long Term Buy Top 25 (High Dividends)":
                     row["Div Yield"] = f"{r['dividend_yield']*100:.2f}%"
@@ -137,8 +139,8 @@ elif page == "Top Daily Gainers":
                 display_data.append({
                     "Ticker": r["ticker"],
                     "Price": f"${r['current_price']:.2f}",
-                    "Predicted Price": f"${r['predicted_price']:.2f}",
-                    "Next Day %": f"{r['predicted_change_pct']:+.2f}%",
+                        "Overnight Edge": f"{r['prob_overnight']*100:.1f}%",
+                        "5-Day Edge": f"{r['prob_5day']*100:.1f}%",
                     "Score": r["score"]
                 })
             st.table(pd.DataFrame(display_data))
