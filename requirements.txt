@@ -11,3 +11,4 @@ xgboost
 pandas-datareader
 pyfinviz
 setuptools
+torch
