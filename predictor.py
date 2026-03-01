@@ -3,6 +3,12 @@ import numpy as np
 import xgboost as xgb
 from sklearn.model_selection import train_test_split, RandomizedSearchCV
 from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import (
+    StackingClassifier, StackingRegressor,
+    RandomForestClassifier, RandomForestRegressor,
+    GradientBoostingClassifier, GradientBoostingRegressor
+)
+from sklearn.linear_model import LogisticRegression, Ridge
 
 class StockPredictor:
     def __init__(self, data: pd.DataFrame, target_type="overnight", mode="edge"):
@@ -11,35 +17,35 @@ class StockPredictor:
         self.mode = mode
 
         if self.mode == "edge":
-            # Using XGBClassifier for binary edge detection
-            self.model = xgb.XGBClassifier(
-                n_estimators=500,
-                learning_rate=0.05,
-                max_depth=4,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                gamma=0.2,
-                reg_alpha=0.2,
-                reg_lambda=1.5,
-                min_child_weight=2,
-                eval_metric='logloss',
-                n_jobs=-1,
-                random_state=42
+            # Ensemble Stacking Classifier
+            estimators = [
+                ('xgb', xgb.XGBClassifier(
+                    n_estimators=300, learning_rate=0.05, max_depth=4,
+                    eval_metric='logloss', random_state=42
+                )),
+                ('rf', RandomForestClassifier(n_estimators=100, max_depth=6, random_state=42)),
+                ('gb', GradientBoostingClassifier(n_estimators=100, random_state=42))
+            ]
+            self.model = StackingClassifier(
+                estimators=estimators,
+                final_estimator=LogisticRegression(),
+                cv=3,
+                n_jobs=-1
             )
         else:
-            # Using XGBRegressor for price forecasting
-            self.model = xgb.XGBRegressor(
-                n_estimators=1000,
-                learning_rate=0.01,
-                max_depth=5,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                gamma=0.1,
-                reg_alpha=0.1,
-                reg_lambda=1.0,
-                min_child_weight=1,
-                n_jobs=-1,
-                random_state=42
+            # Ensemble Stacking Regressor
+            estimators = [
+                ('xgb', xgb.XGBRegressor(
+                    n_estimators=500, learning_rate=0.01, max_depth=5, random_state=42
+                )),
+                ('rf', RandomForestRegressor(n_estimators=100, max_depth=6, random_state=42)),
+                ('gb', GradientBoostingRegressor(n_estimators=100, random_state=42))
+            ]
+            self.model = StackingRegressor(
+                estimators=estimators,
+                final_estimator=Ridge(),
+                cv=3,
+                n_jobs=-1
             )
         self.scaler = StandardScaler()
         self.feature_cols = []
@@ -95,10 +101,13 @@ class StockPredictor:
 
     def tune_hyperparameters(self, X, y):
         """
-        Runs RandomizedSearchCV to find the best XGBoost parameters for the specific data.
+        Tuning base XGBoost model within the ensemble.
         """
+        # Since we use stacking, we tune the first estimator (xgb)
+        base_xgb = self.model.named_estimators_['xgb']
+
         param_dist = {
-            'n_estimators': [300, 500, 800],
+            'n_estimators': [300, 500],
             'learning_rate': [0.01, 0.05, 0.1],
             'max_depth': [3, 4, 5],
             'subsample': [0.7, 0.8, 0.9],
@@ -108,7 +117,7 @@ class StockPredictor:
         scoring = 'roc_auc' if self.mode == "edge" else 'neg_mean_squared_error'
 
         search = RandomizedSearchCV(
-            self.model,
+            base_xgb,
             param_distributions=param_dist,
             n_iter=5,
             cv=3,
@@ -117,7 +126,8 @@ class StockPredictor:
             random_state=42
         )
         search.fit(X, y)
-        self.model = search.best_estimator_
+        # Update the XGB estimator in the ensemble
+        self.model.estimators_[0] = search.best_estimator_
         return search.best_params_
 
     def train(self, optimize=False):
@@ -134,8 +144,11 @@ class StockPredictor:
         X_train_scaled = self.scaler.transform(X_train)
         X_val_scaled = self.scaler.transform(X_val)
 
+        # For stacking, we must fit the ensemble
         if optimize:
             try:
+                # We need to partially fit or adjust tuning logic for stacking
+                # Simple implementation: Tune XGB then re-assemble or just use defaults for others
                 self.tune_hyperparameters(X_train_scaled, y_train)
             except Exception as e:
                 print(f"Hyperparameter tuning failed, using defaults: {e}")
