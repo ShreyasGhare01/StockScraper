@@ -1,21 +1,28 @@
-# 🚀 Stock AI Analyzer & Pump Detector
+# 🚀 Stock AI Analyzer & Pump Detector (V2)
 
-Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of tools designed to help traders identify "Strong Buy" signals, forecast price movements, and detect potential "Pump and Dump" activity using Machine Learning and Sentiment Analysis.
+Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of tools designed to help traders identify "Strong Buy" signals, forecast price movements, and detect potential "Pump and Dump" activity using advanced Machine Learning, Macro Data, and Sentiment Analysis.
 
 ## 🌟 Key Features
 
-- **Technical Analysis Engine:** High-performance indicator logic (RSI, MACD, EMA, etc.) implemented in pure `pandas` for maximum compatibility across Python versions.
+- **Technical Analysis Engine:** High-performance indicator logic (RSI, MACD, EMA, Bollinger Bands, ATR, etc.) implemented in pure `pandas` for maximum compatibility across Python versions (including **Python 3.14**).
 - **Dual AI Core:** Supports two distinct analysis modes selectable in the dashboard sidebar:
     - **Edge Detection (Classification):** Forecasts the mathematical probability of significant moves. This is the recommended mode for high-volatility trading.
         - **Overnight Edge**: Probability that the stock will increase by more than **+2.5%** by the next trading day's close.
         - **5-Day Swing Edge**: Probability that the stock will achieve a maximum return of at least **+5.0%** at some point within the next 5 trading days.
     - **Price Prediction (Regression):** Traditional time-series forecasting of the exact closing price for the next day and the next week.
+- **Advanced ML Architecture:**
+    - **Stacking Ensemble:** Combines **XGBoost**, **Random Forest**, and a **PyTorch-based LSTM** for superior predictive accuracy.
+    - **Hyperparameter Optimization:** Automated tuning of model parameters to adapt to changing market conditions.
+- **Comprehensive Data Integration:**
+    - **Macro Data (FRED):** Incorporates 10-Year Treasury rates and VIX (Volatility Index) into predictions.
+    - **Fundamentals:** Real-time stock data via `yfinance`.
+    - **Sentiment & Research:** Scans Google News RSS feeds for "pump" related keywords and research to gauge market hype.
+- **Backtesting Engine:** Walk-forward simulation that includes transaction costs (0.2%), slippage, and stop-loss (-4%) to verify strategy performance before trading.
 - **ML Pump Detector:** Identifies anomalous volume and price spikes using Z-score classification to alert you to potential market manipulation.
-- **Sentiment & Research Scanner:** Scans Google News RSS feeds for "pump" related keywords and research to gauge market hype.
 - **Option Strategy Suggester:** Recommends specific CALL or PUT strategies based on analysis sentiment and predicted volatility.
 - **Categorized Market Scanners:** Discover opportunities across four specialized lists:
     - **High-Volume Top 10:** Blue-chip leaders with strong technical scores.
-    - **Low-Price Top 25:** Find gems priced between $0.5 and $3.
+    - **Low-Price Top 25:** Find gems priced between **$0.5 and $5**.
     - **Short Term Buy (1-Week Rocket):** AI-predicted 7-day gainers with high sentiment.
     - **Long Term Buy:** Stable companies with the highest dividend yields.
 - **Trading Education Tab:** Learn candlestick patterns (Hammer, Doji, Engulfing) with visual guides and trend analysis tips.
@@ -30,7 +37,7 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 ## 🛠️ Installation & Setup
 
 ### 1. Prerequisites
-- **Python 3.9 through 3.14+** supported.
+- **Python 3.9 through 3.14.3+** supported.
 - Basic knowledge of terminal/command prompt usage.
 
 ### 2. Clone and Prepare Environment
