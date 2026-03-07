@@ -12,3 +12,6 @@ pandas-datareader
 pyfinviz
 setuptools
 torch
+easyocr
+opencv-python-headless
+ultralytics

@@ -3,6 +3,7 @@ from technical_analysis import TechnicalAnalyzer
 from predictor import StockPredictor
 from sentiment_scanner import SentimentScanner
 from backtester import Backtester
+from vision_engine import VisionEngine
 import pandas as pd
 import numpy as np
 
@@ -40,6 +41,33 @@ class AnalysisEngine:
             return backtester.run()
         except Exception as e:
             return {"error": str(e)}
+
+    @staticmethod
+    def analyze_visual(image_path):
+        """
+        Integrates vision analysis with quantitative metrics.
+        """
+        vision = VisionEngine()
+        res = vision.process_screenshot(image_path)
+
+        if "error" in res:
+            return res
+
+        ticker = res["ticker"]
+        if ticker == "UNKNOWN":
+            return {"error": "Could not detect ticker from screenshot."}
+
+        # Enrich vision data with live quantitative data
+        quant_res = AnalysisEngine.analyze_ticker(ticker, period="1y", mode="edge")
+        if "error" in quant_res:
+            # Ticker might be misinterpreted by OCR
+            return {"error": f"Detected ticker {ticker} but could not fetch data. OCR might be inaccurate."}
+
+        # Merge results
+        res["quant_analysis"] = quant_res
+        res["direction"] = quant_res["recommendation"]
+
+        return res
 
     @staticmethod
     def analyze_ticker(ticker, period="2y", optimize=True, mode="edge"):

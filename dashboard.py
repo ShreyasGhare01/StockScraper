@@ -19,6 +19,7 @@ mode_code = "edge" if "Edge" in analysis_mode else "regression"
 page = st.sidebar.radio("Navigate", [
     "Individual Stock Analysis",
     "Market Scanners",
+    "AI Visual Trader",
     "Top Daily Gainers",
     "Trading Education"
 ])
@@ -158,6 +159,72 @@ elif page == "Market Scanners":
             st.table(pd.DataFrame(display_data))
         else:
             st.warning("No stocks found matching criteria.")
+
+elif page == "AI Visual Trader":
+    st.title("📸 AI Visual Chart Analysis")
+    st.write("Upload a chart screenshot to generate an instant intraday options strategy.")
+
+    uploaded_file = st.file_uploader("Upload Chart Screenshot", type=["png", "jpg", "jpeg", "webp"])
+
+    if uploaded_file is not None:
+        # Save temp file
+        temp_path = "temp_screenshot.png"
+        with open(temp_path, "wb") as f:
+            f.write(uploaded_file.getbuffer())
+
+        st.image(uploaded_file, caption="Input Screenshot", use_container_width=True)
+
+        if st.button("Analyze Screenshot"):
+            with st.spinner("Processing image and running AI models..."):
+                res = AnalysisEngine.analyze_visual(temp_path)
+
+                if "error" in res:
+                    st.error(res["error"])
+                else:
+                    quant = res["quant_analysis"]
+
+                    st.success(f"Successfully analyzed **{res['ticker']}**")
+
+                    col1, col2, col3 = st.columns(3)
+                    col1.metric("Ticker", res["ticker"])
+                    col2.metric("Detected Price", f"${res['current_price']:.2f}")
+                    col3.metric("AI Confidence", f"{res['confidence']*100:.0f}%")
+
+                    st.divider()
+                    st.subheader("💡 Intraday Options Recommendation")
+
+                    # Generate options logic for vision result
+                    # We pass the enhanced quant results to the strategist
+                    strategist = OptionStrategist(res['ticker'], res['current_price'], quant, quant['data'])
+                    trades = strategist.suggest_trades()
+
+                    if isinstance(trades, list):
+                        trade = trades[0]
+                        # Calculate SL/TP for structured JSON output as requested
+                        # Intraday SL: -1.5% TP: +3.0%
+                        sl = res['current_price'] * (0.985 if trade['type'] == 'CALL' else 1.015)
+                        tp = res['current_price'] * (1.03 if trade['type'] == 'CALL' else 0.97)
+
+                        output_json = {
+                            "ticker": res["ticker"],
+                            "direction": res["direction"],
+                            "option_type": trade["type"],
+                            "strike_price": trade["strike"],
+                            "expiration": "Same Day (0DTE)",
+                            "entry_price": f"${res['current_price']:.2f}",
+                            "stop_loss": f"${sl:.2f}",
+                            "take_profit_levels": [f"${tp:.2f}"],
+                            "risk_reward_ratio": "1:2",
+                            "confidence_score": f"{res['confidence']*100:.0f}%",
+                            "estimated_success_probability": f"{quant['pred_overnight']*100:.1f}%",
+                            "predicted_duration_minutes": "30-60"
+                        }
+
+                        st.json(output_json)
+
+                        st.info(f"**Trade Details:** {trade['reason']}")
+                    else:
+                        st.warning(trades)
 
 elif page == "Top Daily Gainers":
     st.title("🔥 Top Predicted Daily Gainers")

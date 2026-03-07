@@ -19,6 +19,10 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
     - **Short Term Buy (1-Week Rocket):** AI-predicted 7-day gainers with high sentiment.
     - **Long Term Buy:** Stable companies with the highest dividend yields.
 - **Trading Education Tab:** Learn candlestick patterns (Hammer, Doji, Engulfing) with visual guides and trend analysis tips.
+- **AI Visual Trader:** Upload screenshots from TradingView, Webull, or Robinhood to generate instant intraday strategies.
+    - OCR-based ticker and price detection.
+    - Vision-based trend and level recognition.
+    - Automated SL/TP level calculation.
 - **Visual Dashboard:** An interactive web interface built with Streamlit and Plotly for deep-dive analysis.
 
 ---

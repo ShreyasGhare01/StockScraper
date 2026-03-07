@@ -40,7 +40,7 @@ class OptionStrategist:
                 "type": "CALL",
                 "strategy": strategy_type,
                 "strike": strike_price,
-                "expiry": "14-30 days",
+                "expiry": "14-30 days (Swing) / 0-1 DTE (Intraday)",
                 "reason": reason + f" (ATR: {latest_atr:.2f})"
             })
 
@@ -51,10 +51,10 @@ class OptionStrategist:
         elif recommendation in ["Sell", "Strong Sell"]:
             trades.append({
                 "type": "PUT",
-                "strategy": "Protective Put / Sell",
+                "strategy": "Aggressive Put" if recommendation == "Strong Sell" else "Conservative Put",
                 "strike": round(self.current_price),
-                "expiry": "14-30 days",
-                "reason": "Bearish technical indicators suggest hedging or exiting."
+                "expiry": "14-30 days (Swing) / 0-1 DTE (Intraday)",
+                "reason": "Bearish indicators suggest a downward move."
             })
 
         # Volatility Strategy (Straddle/Strangle if high ATR but uncertain direction)
