@@ -45,7 +45,7 @@ class MarketScanner:
 
     def get_general_low_price_top_25(self, callback=None, mode="edge"):
         results = self._parallel_scan(self.low_price_tickers, callback=callback, mode=mode)
-        filtered = [r for r in results if 0.5 <= r["current_price"] <= 3]
+        filtered = [r for r in results if 0.5 <= r["current_price"] <= 5]
         if not filtered: filtered = sorted(results, key=lambda x: x["current_price"])[:25]
 
         if mode == "edge":
@@ -57,7 +57,7 @@ class MarketScanner:
 
     def get_short_term_buy_top_25(self, callback=None, mode="edge"):
         results = self._parallel_scan(self.low_price_tickers + self.high_volume_tickers, callback=callback, mode=mode)
-        filtered = [r for r in results if 0.5 <= r["current_price"] <= 3]
+        filtered = [r for r in results if 0.5 <= r["current_price"] <= 5]
         if not filtered: filtered = results
 
         if mode == "edge":

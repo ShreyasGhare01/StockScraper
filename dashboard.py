@@ -111,7 +111,7 @@ elif page == "Market Scanners":
     st.title("🏆 Market Scanning Opportunity Finder")
     scan_type = st.selectbox("Select List Type", [
         "High-Volume Top 10",
-        "General Low Price Top 25 ($0.5 - $3)",
+        "General Low Price Top 25 ($0.5 - $5)",
         "Short Term Buy Top 25 (1-Week Rocket)",
         "Long Term Buy Top 25 (High Dividends)"
     ])
@@ -128,7 +128,7 @@ elif page == "Market Scanners":
         scanner = MarketScanner()
         if scan_type == "High-Volume Top 10":
             results = scanner.get_high_volume_top_10(callback=update_progress, mode=mode_code)
-        elif scan_type == "General Low Price Top 25 ($0.5 - $3)":
+        elif scan_type == "General Low Price Top 25 ($0.5 - $5)":
             results = scanner.get_general_low_price_top_25(callback=update_progress, mode=mode_code)
         elif scan_type == "Short Term Buy Top 25 (1-Week Rocket)":
             results = scanner.get_short_term_buy_top_25(callback=update_progress, mode=mode_code)
