@@ -166,6 +166,8 @@ elif page == "AI Visual Trader":
 
     uploaded_file = st.file_uploader("Upload Chart Screenshot", type=["png", "jpg", "jpeg", "webp"])
 
+    manual_ticker = st.text_input("Manual Ticker Override (Optional)", placeholder="e.g. NVDA").upper()
+
     if uploaded_file is not None:
         # Save temp file
         temp_path = "temp_screenshot.png"
@@ -176,7 +178,7 @@ elif page == "AI Visual Trader":
 
         if st.button("Analyze Screenshot"):
             with st.spinner("Processing image and running AI models..."):
-                res = AnalysisEngine.analyze_visual(temp_path)
+                res = AnalysisEngine.analyze_visual(temp_path, manual_ticker=manual_ticker)
 
                 if "error" in res:
                     st.error(res["error"])

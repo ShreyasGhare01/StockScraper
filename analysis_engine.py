@@ -43,7 +43,7 @@ class AnalysisEngine:
             return {"error": str(e)}
 
     @staticmethod
-    def analyze_visual(image_path):
+    def analyze_visual(image_path, manual_ticker=None):
         """
         Integrates vision analysis with quantitative metrics.
         """
@@ -53,15 +53,20 @@ class AnalysisEngine:
         if "error" in res:
             return res
 
-        ticker = res["ticker"]
-        if ticker == "UNKNOWN":
-            return {"error": "Could not detect ticker from screenshot."}
+        ticker = manual_ticker if manual_ticker and manual_ticker.strip() else res["ticker"]
+
+        if not ticker or ticker == "UNKNOWN":
+            return {"error": "Could not detect ticker from screenshot. Please enter it manually."}
+
+        # Overwrite ticker if manual override was used
+        res["ticker"] = ticker.upper()
 
         # Enrich vision data with live quantitative data
-        quant_res = AnalysisEngine.analyze_ticker(ticker, period="1y", mode="edge")
+        # For Visual Trader, we focus on INTRADAY edge
+        quant_res = AnalysisEngine.analyze_ticker(ticker, period="1y", mode="edge", target_override="intraday_edge")
+
         if "error" in quant_res:
-            # Ticker might be misinterpreted by OCR
-            return {"error": f"Detected ticker {ticker} but could not fetch data. OCR might be inaccurate."}
+            return {"error": f"Detected ticker {ticker} but could not fetch data. Check if the ticker is correct."}
 
         # Merge results
         res["quant_analysis"] = quant_res
@@ -70,7 +75,7 @@ class AnalysisEngine:
         return res
 
     @staticmethod
-    def analyze_ticker(ticker, period="2y", optimize=True, mode="edge"):
+    def analyze_ticker(ticker, period="2y", optimize=True, mode="edge", target_override=None):
         try:
             # 1. Fetch Data
             fetcher = StockDataFetcher(ticker)
@@ -141,15 +146,24 @@ class AnalysisEngine:
             if "error" in analysis:
                 return {"ticker": ticker, "error": analysis["error"]}
 
-            # 3. Overnight Prediction
-            predictor_overnight = StockPredictor(data_with_indicators, target_type="overnight", mode=mode)
+            # 3. Prediction Mode Setup
+            # If target_override is provided (e.g., intraday_edge), focus on that instead of default
+            target_1 = target_override if target_override else "overnight"
+            target_2 = "5day" if not target_override else None
+
+            # 3. Target 1 Prediction
+            predictor_overnight = StockPredictor(data_with_indicators, target_type=target_1, mode=mode)
             predictor_overnight.train(optimize=optimize)
             pred_overnight, ev_overnight = predictor_overnight.predict_probability()
 
-            # 4. 5-Day Prediction
-            predictor_5day = StockPredictor(data_with_indicators, target_type="5day", mode=mode)
-            predictor_5day.train(optimize=optimize)
-            pred_5day, ev_5day = predictor_5day.predict_probability()
+            # 4. Target 2 Prediction (Optional)
+            if target_2:
+                predictor_5day = StockPredictor(data_with_indicators, target_type=target_2, mode=mode)
+                predictor_5day.train(optimize=optimize)
+                pred_5day, ev_5day = predictor_5day.predict_probability()
+            else:
+                pred_5day, ev_5day = 0.0, 0.0
+                predictor_5day = predictor_overnight # Fallback for reliability metrics
 
             # 5. Sentiment & Velocity metrics
             sentiment_scanner = SentimentScanner()
