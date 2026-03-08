@@ -168,6 +168,19 @@ elif page == "AI Visual Trader":
 
     manual_ticker = st.text_input("Manual Ticker Override (Optional)", placeholder="e.g. NVDA").upper()
 
+    strategy_type = st.radio("AI Analysis Strategy", [
+        "Intraday Scalp (Edge)",
+        "Overnight Swing (Edge)",
+        "Price Forecast (Regression)"
+    ], horizontal=True)
+
+    if strategy_type == "Intraday Scalp (Edge)":
+        v_mode, v_target = "edge", "intraday_edge"
+    elif strategy_type == "Overnight Swing (Edge)":
+        v_mode, v_target = "edge", "overnight"
+    else:
+        v_mode, v_target = "regression", "overnight"
+
     if uploaded_file is not None:
         # Save temp file
         temp_path = "temp_screenshot.png"
@@ -178,7 +191,7 @@ elif page == "AI Visual Trader":
 
         if st.button("Analyze Screenshot"):
             with st.spinner("Processing image and running AI models..."):
-                res = AnalysisEngine.analyze_visual(temp_path, manual_ticker=manual_ticker)
+                res = AnalysisEngine.analyze_visual(temp_path, manual_ticker=manual_ticker, mode=v_mode, target_override=v_target)
 
                 if "error" in res:
                     st.error(res["error"])
@@ -207,19 +220,24 @@ elif page == "AI Visual Trader":
                         sl = res['current_price'] * (0.985 if trade['type'] == 'CALL' else 1.015)
                         tp = res['current_price'] * (1.03 if trade['type'] == 'CALL' else 0.97)
 
+                        exp = "Same Day (0DTE)" if strategy_type == "Intraday Scalp (Edge)" else "1-2 Weeks"
+                        prob_key = "estimated_success_probability" if v_mode == "edge" else "predicted_return"
+                        prob_val = f"{quant['pred_overnight']*100:.1f}%" if v_mode == "edge" else f"{((quant['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%"
+
                         output_json = {
                             "ticker": res["ticker"],
+                            "strategy": strategy_type,
                             "direction": res["direction"],
                             "option_type": trade["type"],
                             "strike_price": trade["strike"],
-                            "expiration": "Same Day (0DTE)",
+                            "expiration": exp,
                             "entry_price": f"${res['current_price']:.2f}",
                             "stop_loss": f"${sl:.2f}",
                             "take_profit_levels": [f"${tp:.2f}"],
                             "risk_reward_ratio": "1:2",
                             "confidence_score": f"{res['confidence']*100:.0f}%",
-                            "estimated_success_probability": f"{quant['pred_overnight']*100:.1f}%",
-                            "predicted_duration_minutes": "30-60"
+                            prob_key: prob_val,
+                            "predicted_duration_minutes": "30-60" if strategy_type == "Intraday Scalp (Edge)" else "1-5 Days"
                         }
 
                         st.json(output_json)

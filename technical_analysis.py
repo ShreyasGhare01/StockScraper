@@ -109,6 +109,16 @@ class TechnicalAnalyzer:
         # Interaction term: Volume Z-score * Price Momentum (ROC_12)
         self.data['Vol_Price_Interaction'] = self.data['Vol_ZScore'] * self.data['ROC_12']
 
+        # --- Additional Intraday Predictive Features ---
+        # Previous Day Return
+        self.data['Prev_Day_Return'] = self.data['Close'].pct_change()
+        # Volatility Z-Score
+        self.data['Volatility_ZScore'] = self._manual_zscore(self.data['Volatility_20'], window=20)
+        # Intraday Range Percent
+        self.data['Intraday_Range_Pct'] = (self.data['High'] - self.data['Low']) / (self.data['Low'] + 1e-9)
+        # Distance from SMA 20 (normalized)
+        self.data['SMA20_Dist'] = (self.data['Close'] - self.data['SMA_20']) / (self.data['SMA_20'] + 1e-9)
+
         return self.data
 
     def get_signals(self) -> dict:

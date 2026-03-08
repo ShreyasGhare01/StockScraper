@@ -43,7 +43,7 @@ class AnalysisEngine:
             return {"error": str(e)}
 
     @staticmethod
-    def analyze_visual(image_path, manual_ticker=None):
+    def analyze_visual(image_path, manual_ticker=None, mode="edge", target_override="intraday_edge"):
         """
         Integrates vision analysis with quantitative metrics.
         """
@@ -62,8 +62,7 @@ class AnalysisEngine:
         res["ticker"] = ticker.upper()
 
         # Enrich vision data with live quantitative data
-        # For Visual Trader, we focus on INTRADAY edge
-        quant_res = AnalysisEngine.analyze_ticker(ticker, period="1y", mode="edge", target_override="intraday_edge")
+        quant_res = AnalysisEngine.analyze_ticker(ticker, period="1y", mode=mode, target_override=target_override)
 
         if "error" in quant_res:
             return {"error": f"Detected ticker {ticker} but could not fetch data. Check if the ticker is correct."}
