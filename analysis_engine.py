@@ -151,6 +151,7 @@ class AnalysisEngine:
             target_2 = "5day" if not target_override else None
 
             # 3. Target 1 Prediction
+            # Mapping readable target names if needed
             predictor_overnight = StockPredictor(data_with_indicators, target_type=target_1, mode=mode)
             predictor_overnight.train(optimize=optimize)
             pred_overnight, ev_overnight = predictor_overnight.predict_probability()

@@ -171,12 +171,15 @@ elif page == "AI Visual Trader":
 
     strategy_type = st.radio("AI Analysis Strategy", [
         "Intraday Scalp (Edge)",
+        "Moonshot (Super-Impact +7%)",
         "Overnight Swing (Edge)",
         "Price Forecast (Regression)"
     ], horizontal=True)
 
     if strategy_type == "Intraday Scalp (Edge)":
         v_mode, v_target = "edge", "intraday_edge"
+    elif strategy_type == "Moonshot (Super-Impact +7%)":
+        v_mode, v_target = "edge", "super_impact_edge"
     elif strategy_type == "Overnight Swing (Edge)":
         v_mode, v_target = "edge", "overnight"
     else:
@@ -221,7 +224,7 @@ elif page == "AI Visual Trader":
                         sl = res['current_price'] * (0.985 if trade['type'] == 'CALL' else 1.015)
                         tp = res['current_price'] * (1.03 if trade['type'] == 'CALL' else 0.97)
 
-                        exp = "Same Day (0DTE)" if strategy_type == "Intraday Scalp (Edge)" else "1-2 Weeks"
+                        exp = "Same Day (0DTE)" if strategy_type in ["Intraday Scalp (Edge)", "Moonshot (Super-Impact +7%)"] else "1-2 Weeks"
                         prob_key = "estimated_success_probability" if v_mode == "edge" else "predicted_return"
                         prob_val = f"{quant['pred_overnight']*100:.1f}%" if v_mode == "edge" else f"{((quant['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%"
 
@@ -238,7 +241,7 @@ elif page == "AI Visual Trader":
                             "risk_reward_ratio": "1:2",
                             "confidence_score": f"{res['confidence']*100:.0f}%",
                             prob_key: prob_val,
-                            "predicted_duration_minutes": "30-60" if strategy_type == "Intraday Scalp (Edge)" else "1-5 Days"
+                            "predicted_duration_minutes": "30-60" if strategy_type in ["Intraday Scalp (Edge)", "Moonshot (Super-Impact +7%)"] else "1-5 Days"
                         }
 
                         st.json(output_json)
@@ -251,9 +254,15 @@ elif page == "Sector Alpha Finder":
     st.title("🔥 Sector Alpha High-Impact Finder")
     st.write("Scan entire sectors for high-impact intraday moves (>3.0% returns) using news, research, and technical velocity.")
 
-    selected_sector = st.selectbox("Select Target Sector", [
-        "Technology", "Biotech/Healthcare", "Energy", "Finance", "Consumer"
-    ])
+    c1, c2 = st.columns([2, 1])
+    with c1:
+        selected_sector = st.selectbox("Select Target Sector", [
+            "Technology", "Biotech/Healthcare", "Energy", "Finance", "Consumer"
+        ])
+    with c2:
+        alpha_threshold = st.selectbox("Alpha Threshold", ["High Impact (>3%)", "Moonshot (>7%)"])
+
+    target_override = "high_impact_edge" if "High" in alpha_threshold else "super_impact_edge"
 
     if st.button("Find Sector Alpha"):
         progress_bar = st.progress(0)
@@ -265,7 +274,9 @@ elif page == "Sector Alpha Finder":
             status_text.text(f"Scanning {ticker} in {selected_sector}... ({current}/{total})")
 
         scanner = MarketScanner()
-        results = scanner.get_sector_top_gains(selected_sector, callback=update_progress)
+        # Pass target_override to scanner logic via custom call or by modifying get_sector_top_gains
+        # Modifying scanner call
+        results = scanner.get_sector_top_gains(selected_sector, callback=update_progress, target_override=target_override)
 
         if results:
             best = results[0]

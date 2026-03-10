@@ -93,14 +93,14 @@ class MarketScanner:
             sorted_res = sorted(results, key=lambda x: (x["pred_overnight"] / x["current_price"]), reverse=True)
         return sorted_res[:10]
 
-    def get_sector_top_gains(self, sector, callback=None):
+    def get_sector_top_gains(self, sector, callback=None, target_override="high_impact_edge"):
         """
         Specialized scan for high-impact intraday moves in a sector.
         """
         tickers = self.sectors.get(sector, [])
         if not tickers: return []
 
-        # We always use 'edge' mode and 'high_impact_edge' for this specialized scanner
+        # We always use 'edge' mode and selected target override for this specialized scanner
         results = []
         with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
             future_to_ticker = {
@@ -109,7 +109,7 @@ class MarketScanner:
                     ticker,
                     optimize=False,
                     mode="edge",
-                    target_override="high_impact_edge"
+                    target_override=target_override
                 ): ticker for ticker in tickers
             }
             for i, future in enumerate(concurrent.futures.as_completed(future_to_ticker)):
