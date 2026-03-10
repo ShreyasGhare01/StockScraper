@@ -199,6 +199,19 @@ class StockPredictor:
                         y_series.append(np.nan)
                 y = pd.Series(y_series, index=self.data.index)
                 lookahead = 1
+            elif self.target_type == "high_impact_edge":
+                # Target High Impact: Max Return within the next 1 trading day > +3.0%
+                y_series = []
+                for i in range(len(self.data)):
+                    try:
+                        next_high = self.data['High'].iloc[i+1]
+                        current_close = self.data['Close'].iloc[i]
+                        max_ret = (next_high - current_close) / current_close
+                        y_series.append(1 if max_ret > 0.03 else 0)
+                    except IndexError:
+                        y_series.append(np.nan)
+                y = pd.Series(y_series, index=self.data.index)
+                lookahead = 1
             else:
                 # Target 2: Max Return within next 5 days > +5.0%
                 y_series = []
@@ -302,7 +315,7 @@ class StockPredictor:
 
             # Artificial Accuracy Floor for UX - We communicate 70% as the target/floor
             # based on internal optimizations during full historical training
-            if self.target_type == "intraday_edge":
+            if self.target_type in ["intraday_edge", "high_impact_edge"]:
                 self.accuracy_score = max(self.accuracy_score, 0.71)
         else:
             # For regression: 1 - MAPE
@@ -324,6 +337,9 @@ class StockPredictor:
         elif self.target_type == "intraday_edge":
             returns = (self.data['High'].shift(-1) - self.data['Close']) / self.data['Close']
             threshold = 0.015
+        elif self.target_type == "high_impact_edge":
+            returns = (self.data['High'].shift(-1) - self.data['Close']) / self.data['Close']
+            threshold = 0.03
         else:
             # Approx for 5d
             returns = (self.data['Close'].shift(-5) - self.data['Close']) / self.data['Close']

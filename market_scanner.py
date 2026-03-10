@@ -20,6 +20,14 @@ class MarketScanner:
             "AEI", "AAL", "RIG", "PBI", "CLOV"
         ]
 
+        self.sectors = {
+            "Technology": ["NVDA", "AMD", "AVGO", "SMCI", "ARM", "MSFT", "AAPL", "GOOGL", "META", "TSLA"],
+            "Biotech/Healthcare": ["LLY", "VRTX", "REGN", "AMGN", "PFE", "BNTX", "MRNA", "BIIB", "GILD", "ABBV"],
+            "Energy": ["XOM", "CVX", "COP", "SLB", "EOG", "OXY", "VLO", "MPC", "PSX", "HES"],
+            "Finance": ["JPM", "BAC", "WFC", "GS", "MS", "C", "AXP", "V", "MA", "PYPL"],
+            "Consumer": ["AMZN", "WMT", "COST", "TGT", "NKE", "SBUX", "MCD", "KO", "PEP", "PG"]
+        }
+
     def _parallel_scan(self, tickers, callback=None, mode="edge"):
         results = []
         # Optimization is disabled for market scans to ensure performance
@@ -84,6 +92,37 @@ class MarketScanner:
         else:
             sorted_res = sorted(results, key=lambda x: (x["pred_overnight"] / x["current_price"]), reverse=True)
         return sorted_res[:10]
+
+    def get_sector_top_gains(self, sector, callback=None):
+        """
+        Specialized scan for high-impact intraday moves in a sector.
+        """
+        tickers = self.sectors.get(sector, [])
+        if not tickers: return []
+
+        # We always use 'edge' mode and 'high_impact_edge' for this specialized scanner
+        results = []
+        with concurrent.futures.ThreadPoolExecutor(max_workers=5) as executor:
+            future_to_ticker = {
+                executor.submit(
+                    AnalysisEngine.analyze_ticker,
+                    ticker,
+                    optimize=False,
+                    mode="edge",
+                    target_override="high_impact_edge"
+                ): ticker for ticker in tickers
+            }
+            for i, future in enumerate(concurrent.futures.as_completed(future_to_ticker)):
+                ticker = future_to_ticker[future]
+                if callback:
+                    callback(i + 1, len(tickers), ticker)
+                res = future.result()
+                if "error" not in res:
+                    results.append(res)
+
+        # Sort by EV (Expected Value)
+        sorted_res = sorted(results, key=lambda x: x["ev_overnight"], reverse=True)
+        return sorted_res
 
 if __name__ == "__main__":
     scanner = MarketScanner()

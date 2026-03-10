@@ -20,6 +20,7 @@ page = st.sidebar.radio("Navigate", [
     "Individual Stock Analysis",
     "Market Scanners",
     "AI Visual Trader",
+    "Sector Alpha Finder",
     "Top Daily Gainers",
     "Trading Education"
 ])
@@ -245,6 +246,77 @@ elif page == "AI Visual Trader":
                         st.info(f"**Trade Details:** {trade['reason']}")
                     else:
                         st.warning(trades)
+
+elif page == "Sector Alpha Finder":
+    st.title("🔥 Sector Alpha High-Impact Finder")
+    st.write("Scan entire sectors for high-impact intraday moves (>3.0% returns) using news, research, and technical velocity.")
+
+    selected_sector = st.selectbox("Select Target Sector", [
+        "Technology", "Biotech/Healthcare", "Energy", "Finance", "Consumer"
+    ])
+
+    if st.button("Find Sector Alpha"):
+        progress_bar = st.progress(0)
+        status_text = st.empty()
+
+        def update_progress(current, total, ticker):
+            pct = current / total
+            progress_bar.progress(pct)
+            status_text.text(f"Scanning {ticker} in {selected_sector}... ({current}/{total})")
+
+        scanner = MarketScanner()
+        results = scanner.get_sector_top_gains(selected_sector, callback=update_progress)
+
+        if results:
+            best = results[0]
+            st.success(f"Best Sector Opportunity Found: **{best['ticker']}**")
+
+            c1, c2, c3 = st.columns(3)
+            c1.metric("Current Price", f"${best['current_price']:.2f}")
+            c2.metric("High-Impact Prob", f"{best['pred_overnight']*100:.1f}%")
+            c3.metric("Expected Value", f"{best['ev_overnight']*100:.2f}%")
+
+            st.divider()
+            st.subheader("🎯 Optimal Call Option Strategy")
+
+            # Use strategist for the best ticker
+            strategist = OptionStrategist(best['ticker'], best['current_price'], best, best['data'])
+            trades = strategist.suggest_trades()
+
+            if isinstance(trades, list):
+                trade = trades[0]
+                col_t, col_j = st.columns([1, 1])
+                with col_t:
+                    st.markdown(f"### Recommended Call: {trade['strike']}C")
+                    st.write(f"**Rationale:** {trade['reason']}")
+                    st.write(f"**Sentiment Velocity:** {best['data']['sentiment_velocity'].iloc[-1]*100:+.1f}%")
+                    st.write(f"**News Velocity:** {best['data']['news_velocity'].iloc[-1]:.2f}")
+                with col_j:
+                    st.json({
+                        "ticker": best["ticker"],
+                        "sector": selected_sector,
+                        "option_strategy": "High-Delta Call Scalp",
+                        "strike": trade["strike"],
+                        "expiration": "Same Day / Next Day",
+                        "target_gain": "> +3.0% (Stock Move)",
+                        "confidence": f"{best['acc_overnight']*100:.0f}%",
+                        "news_research_alignment": "Positive" if best['sentiment_score'] > 0 else "Neutral"
+                    })
+
+            st.divider()
+            st.subheader("Sector Comparison")
+            display_data = []
+            for r in results:
+                display_data.append({
+                    "Ticker": r["ticker"],
+                    "Price": f"${r['current_price']:.2f}",
+                    "High-Impact Prob": f"{r['pred_overnight']*100:.1f}%",
+                    "EV": f"{r['ev_overnight']*100:.2f}%",
+                    "News Score": f"{r['sentiment_score']*100:.0f}%"
+                })
+            st.table(pd.DataFrame(display_data))
+        else:
+            st.error("No significant alpha detected in this sector.")
 
 elif page == "Top Daily Gainers":
     st.title("🔥 Top Predicted Daily Gainers")

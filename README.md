@@ -8,6 +8,9 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 - **Dual AI Core:** Supports two distinct analysis modes selectable in the dashboard sidebar:
     - **Edge Detection (Classification):** Forecasts the mathematical probability of significant moves. This is the recommended mode for high-volatility trading.
         - **Overnight Edge**: Probability that the stock will increase by more than **+2.5%** by the next trading day's close.
+        - **Intraday Edge**: Probability that the stock will increase by more than **+1.5%** at some point during the next trading day.
+        - **High-Impact Edge**: Probability that the stock will increase by more than **+3.0%** at some point during the next trading day.
+        - **Overnight Edge**: Probability that the stock will increase by more than **+2.5%** by the next trading day's close.
         - **5-Day Swing Edge**: Probability that the stock will achieve a maximum return of at least **+5.0%** at some point within the next 5 trading days.
     - **Price Prediction (Regression):** Traditional time-series forecasting of the exact closing price for the next day and the next week.
 - **Advanced ML Architecture:**
@@ -20,6 +23,7 @@ Welcome to the **Stock AI Analyzer & Pump Detector**, a comprehensive suite of t
 - **Backtesting Engine:** Walk-forward simulation that includes transaction costs (0.2%), slippage, and stop-loss (-4%) to verify strategy performance before trading.
 - **ML Pump Detector:** Identifies anomalous volume and price spikes using Z-score classification to alert you to potential market manipulation.
 - **Option Strategy Suggester:** Recommends specific CALL or PUT strategies based on analysis sentiment and predicted volatility.
+- **Sector Alpha Finder:** High-impact scanner that identifies >3.0% intraday opportunities within specific sectors (Tech, Biotech, Energy, etc.) using news velocity and ensemble-based forecasting.
 - **Categorized Market Scanners:** Discover opportunities across four specialized lists:
     - **High-Volume Top 10:** Blue-chip leaders with strong technical scores.
     - **Low-Price Top 25:** Find gems priced between **$0.5 and $5**.
