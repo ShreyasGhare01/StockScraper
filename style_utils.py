@@ -15,8 +15,8 @@ CSS = """
     --warn:     #ffb830;
     --danger:   #ff4560;
     --muted:    #4a6070;
-    --text:     #cdd9e5;
-    --text-dim: #667788;
+    --text:     #ffffff;
+    --text-dim: #e1eaf2;
     --font-head: 'Syne', sans-serif;
     --font-mono: 'Space Mono', monospace;
     --font-body: 'DM Sans', sans-serif;
@@ -26,6 +26,7 @@ CSS = """
     background: var(--bg);
     color: var(--text);
     font-family: var(--font-body);
+    font-weight: 700 !important;
   }
 
   /* Override Streamlit elements */
@@ -104,7 +105,8 @@ CSS = """
     font-size: 10px;
     text-transform: uppercase;
     letter-spacing: .1em;
-    color: var(--text-dim);
+    color: var(--text);
+    font-weight: 800;
     margin-bottom: 6px;
   }
   .metric-value {
@@ -166,10 +168,11 @@ CSS = """
 
   .nav-section-label {
     font-family: var(--font-mono);
-    font-size: 10px;
+    font-size: 11px;
     text-transform: uppercase;
     letter-spacing: .12em;
-    color: var(--muted);
+    color: #fff;
+    font-weight: 800;
     padding: 16px 0 6px;
   }
 
@@ -182,8 +185,9 @@ CSS = """
   }
   .sidebar-stat-label {
     font-family: var(--font-mono);
-    font-size: 9px;
-    color: var(--text-dim);
+    font-size: 10px;
+    color: #fff;
+    font-weight: 800;
     text-transform: uppercase;
     letter-spacing: .08em;
     margin-bottom: 2px;
@@ -224,7 +228,7 @@ def render_section_header(title, subtitle):
     st.markdown(f"""
         <div style="margin-bottom: 24px; padding-bottom: 16px; border-bottom: 1px solid var(--border);">
             <div style="font-family: var(--font-head); font-weight: 800; font-size: 24px; color: #fff;">{title}</div>
-            <div style="font-size: 13px; color: var(--text-dim); margin-top: 4px;">{subtitle}</div>
+            <div style="font-size: 13px; color: #fff; font-weight: 700; margin-top: 4px;">{subtitle}</div>
         </div>
     """, unsafe_allow_html=True)
 
