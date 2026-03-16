@@ -7,13 +7,19 @@ from pump_detector import PumpDetector
 from sentiment_scanner import SentimentScanner
 from option_strategy import OptionStrategist
 import trading_patterns_info as info
+import style_utils as styles
 
 st.set_page_config(page_title="Stock AI Analyzer Pro", layout="wide")
+styles.inject_styles()
 
-st.sidebar.title("🚀 AI Stock Suite")
+styles.render_logo()
 
+# Sidebar Stats
+styles.render_sidebar_stats("5,431.21", "18.42")
+
+st.sidebar.markdown('<div class="nav-section-label">Configuration</div>', unsafe_allow_html=True)
 # Analysis Mode Selection
-analysis_mode = st.sidebar.radio("Select Analysis Mode", ["Edge Detection (Probabilistic)", "Price Prediction (Regression)"])
+analysis_mode = st.sidebar.radio("Analysis Mode", ["Edge Detection (Probabilistic)", "Price Prediction (Regression)"])
 mode_code = "edge" if "Edge" in analysis_mode else "regression"
 
 page = st.sidebar.radio("Navigate", [
@@ -26,11 +32,21 @@ page = st.sidebar.radio("Navigate", [
 ])
 
 if page == "Individual Stock Analysis":
-    st.title("📊 Individual Stock Analysis")
-    ticker = st.sidebar.text_input("Enter Ticker Symbol", value="AAPL").upper()
-    period = st.sidebar.selectbox("Select Period", ["5d", "1mo", "6mo", "1y", "2y", "5y", "max"], index=4)
+    styles.render_section_header("Individual Stock Analysis", "Probabilistic edge detection & price prediction per ticker")
 
-    if st.sidebar.button("Run Analysis"):
+    col_t, col_p, col_b, col_back = st.columns([2, 2, 2, 2])
+    with col_t:
+        ticker = st.text_input("Ticker Symbol", value="AAPL").upper()
+    with col_p:
+        period = st.selectbox("Historical Period", ["5d", "1mo", "6mo", "1y", "2y", "5y", "max"], index=4)
+    with col_b:
+        st.write(" ")
+        run_btn = st.button("▶ Run Analysis")
+    with col_back:
+        st.write(" ")
+        backtest_btn = st.button("⟳ Run Backtest")
+
+    if run_btn:
         with st.spinner(f"Analyzing {ticker}..."):
             res = AnalysisEngine.analyze_ticker(ticker, period=period, mode=mode_code)
             if "error" in res:
@@ -38,19 +54,25 @@ if page == "Individual Stock Analysis":
             else:
                 data = res["data"]
                 # Display Metrics
-                col1, col2, col3, col4 = st.columns(4)
-                col1.metric("Current Price", f"${res['current_price']:.2f}")
+                c1, c2, c3, c4 = st.columns(4)
+                with c1:
+                    styles.render_metric_card("Current Price", f"${res['current_price']:.2f}", color="blue")
 
                 if mode_code == "edge":
-                    col2.metric("Overnight EV", f"{res['ev_overnight']*100:.2f}%", f"{res['pred_overnight']*100:.1f}% Prob")
-                    col3.metric("5-Day EV", f"{res['ev_5day']*100:.2f}%", f"{res['pred_5day']*100:.1f}% Prob")
+                    with c2:
+                        styles.render_metric_card("Overnight EV", f"{res['ev_overnight']*100:.2f}%", f"{res['pred_overnight']*100:.1f}% Prob", "green")
+                    with c3:
+                        styles.render_metric_card("5-Day EV", f"{res['ev_5day']*100:.2f}%", f"{res['pred_5day']*100:.1f}% Prob", "blue")
                     st.caption(f"Model Reliability: Overnight ({res['acc_overnight']*100:.1f}%) | 5-Day ({res['acc_5day']*100:.1f}%)")
                 else:
-                    col2.metric("Next Day Pred", f"${res['pred_overnight']:.2f}", f"{((res['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%")
-                    col3.metric("5-Day Pred", f"${res['pred_5day']:.2f}", f"{((res['pred_5day']-res['current_price'])/res['current_price'])*100:+.2f}%")
+                    with c2:
+                        styles.render_metric_card("Next Day Pred", f"${res['pred_overnight']:.2f}", f"{((res['pred_overnight']-res['current_price'])/res['current_price'])*100:+.2f}%", "green")
+                    with c3:
+                        styles.render_metric_card("5-Day Pred", f"${res['pred_5day']:.2f}", f"{((res['pred_5day']-res['current_price'])/res['current_price'])*100:+.2f}%", "blue")
                     st.caption(f"Model Accuracy (1-MAPE): Tomorrow ({res['acc_overnight']*100:.1f}%) | 1-Week ({res['acc_5day']*100:.1f}%)")
 
-                col4.metric("Score", res["score"], res["recommendation"])
+                with c4:
+                    styles.render_metric_card("Score / Signal", f"{res['score']}/100", res["recommendation"], "warn")
 
                 # Chart
                 fig = go.Figure(data=[go.Candlestick(x=data.index, open=data['Open'], high=data['High'], low=data['Low'], close=data['Close'])])
@@ -85,19 +107,19 @@ if page == "Individual Stock Analysis":
                 st.write(trades)
 
                 # Backtest Section
-                st.divider()
-                st.subheader("📈 Historical Backtest (Last 100 Days)")
-                if st.button("Run Historical Backtest"):
+                if backtest_btn:
+                    st.divider()
+                    st.subheader("📈 Historical Backtest (Last 100 Days)")
                     with st.spinner("Simulating historical performance..."):
                         bt = AnalysisEngine.backtest_ticker(ticker, data)
                         if "error" in bt:
                             st.error(bt["error"])
                         else:
                             c1, c2, c3, c4 = st.columns(4)
-                            c1.metric("Total Return", f"{bt['total_return']*100:.2f}%")
-                            c2.metric("Win Rate", f"{bt['win_rate']*100:.1f}%")
-                            c3.metric("Sharpe Ratio", f"{bt['sharpe_ratio']:.2f}")
-                            c4.metric("Profit Factor", f"{bt['profit_factor']:.2f}")
+                            with c1: styles.render_metric_card("Total Return", f"{bt['total_return']*100:.2f}%", color="green")
+                            with c2: styles.render_metric_card("Win Rate", f"{bt['win_rate']*100:.1f}%", color="blue")
+                            with c3: styles.render_metric_card("Sharpe Ratio", f"{bt['sharpe_ratio']:.2f}", color="blue")
+                            with c4: styles.render_metric_card("Profit Factor", f"{bt['profit_factor']:.2f}", color="warn")
 
                             st.metric("Max Drawdown", f"{bt['max_drawdown']*100:.2f}%")
 
@@ -109,15 +131,21 @@ if page == "Individual Stock Analysis":
                             st.write(f"Executed **{bt['num_trades']}** simulated trades over the last 100 trading days.")
 
 elif page == "Market Scanners":
-    st.title("🏆 Market Scanning Opportunity Finder")
-    scan_type = st.selectbox("Select List Type", [
-        "High-Volume Top 10",
-        "General Low Price Top 25 ($0.5 - $5)",
-        "Short Term Buy Top 25 (1-Week Rocket)",
-        "Long Term Buy Top 25 (High Dividends)"
-    ])
+    styles.render_section_header("Market Scanning Opportunity Finder", "Automated multi-universe screening with AI scoring")
 
-    if st.button("Start Market Scan"):
+    col_s, col_b = st.columns([3, 1])
+    with col_s:
+        scan_type = st.selectbox("Scan List Type", [
+            "High-Volume Top 10",
+            "General Low Price Top 25 ($0.5 - $5)",
+            "Short Term Buy Top 25 (1-Week Rocket)",
+            "Long Term Buy Top 25 (High Dividends)"
+        ])
+    with col_b:
+        st.write(" ")
+        scan_btn = st.button("⟳ Start Market Scan")
+
+    if scan_btn:
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -162,10 +190,9 @@ elif page == "Market Scanners":
             st.warning("No stocks found matching criteria.")
 
 elif page == "AI Visual Trader":
-    st.title("📸 AI Visual Chart Analysis")
-    st.write("Upload a chart screenshot to generate an instant intraday options strategy.")
+    styles.render_section_header("AI Visual Chart Analysis", "Upload a chart screenshot to generate an instant intraday options strategy")
 
-    uploaded_file = st.file_uploader("Upload Chart Screenshot", type=["png", "jpg", "jpeg", "webp"])
+    uploaded_file = st.file_uploader("Upload Chart Screenshot", type=["png", "jpg", "jpeg", "webp"], help="PNG, JPG, JPEG, WEBP · Max 200MB")
 
     manual_ticker = st.text_input("Manual Ticker Override (Optional)", placeholder="e.g. NVDA").upper()
 
@@ -204,10 +231,10 @@ elif page == "AI Visual Trader":
 
                     st.success(f"Successfully analyzed **{res['ticker']}**")
 
-                    col1, col2, col3 = st.columns(3)
-                    col1.metric("Ticker", res["ticker"])
-                    col2.metric("Detected Price", f"${res['current_price']:.2f}")
-                    col3.metric("AI Confidence", f"{res['confidence']*100:.0f}%")
+                    c1, c2, c3 = st.columns(3)
+                    with c1: styles.render_metric_card("Ticker", res["ticker"], color="blue")
+                    with c2: styles.render_metric_card("Detected Price", f"${res['current_price']:.2f}", color="blue")
+                    with c3: styles.render_metric_card("AI Confidence", f"{res['confidence']*100:.0f}%", color="green")
 
                     st.divider()
                     st.subheader("💡 Intraday Options Recommendation")
@@ -244,15 +271,14 @@ elif page == "AI Visual Trader":
                             "predicted_duration_minutes": "30-60" if strategy_type in ["Intraday Scalp (Edge)", "Moonshot (Super-Impact +7%)"] else "1-5 Days"
                         }
 
-                        st.json(output_json)
+                        styles.render_json_strategy(output_json)
 
                         st.info(f"**Trade Details:** {trade['reason']}")
                     else:
                         st.warning(trades)
 
 elif page == "Sector Alpha Finder":
-    st.title("🔥 Sector Alpha High-Impact Finder")
-    st.write("Scan entire sectors for high-impact intraday moves (>3.0% returns) using news, research, and technical velocity.")
+    styles.render_section_header("Sector Alpha High-Impact Finder", "Scan entire sectors for high-impact intraday moves using news & technical velocity")
 
     c1, c2 = st.columns([2, 1])
     with c1:
@@ -283,9 +309,9 @@ elif page == "Sector Alpha Finder":
             st.success(f"Best Sector Opportunity Found: **{best['ticker']}**")
 
             c1, c2, c3 = st.columns(3)
-            c1.metric("Current Price", f"${best['current_price']:.2f}")
-            c2.metric("High-Impact Prob", f"{best['pred_overnight']*100:.1f}%")
-            c3.metric("Expected Value", f"{best['ev_overnight']*100:.2f}%")
+            with c1: styles.render_metric_card("Best Opportunity", best['ticker'], color="green")
+            with c2: styles.render_metric_card("High-Impact Prob", f"{best['pred_overnight']*100:.1f}%", color="blue")
+            with c3: styles.render_metric_card("Expected Value", f"{best['ev_overnight']*100:.2f}%", color="warn")
 
             st.divider()
             st.subheader("🎯 Optimal Call Option Strategy")
@@ -303,7 +329,7 @@ elif page == "Sector Alpha Finder":
                     st.write(f"**Sentiment Velocity:** {best['data']['sentiment_velocity'].iloc[-1]*100:+.1f}%")
                     st.write(f"**News Velocity:** {best['data']['news_velocity'].iloc[-1]:.2f}")
                 with col_j:
-                    st.json({
+                    styles.render_json_strategy({
                         "ticker": best["ticker"],
                         "sector": selected_sector,
                         "option_strategy": "High-Delta Call Scalp",
@@ -330,10 +356,9 @@ elif page == "Sector Alpha Finder":
             st.error("No significant alpha detected in this sector.")
 
 elif page == "Top Daily Gainers":
-    st.title("🔥 Top Predicted Daily Gainers")
-    st.write("Stocks with the highest predicted percentage increase for the next trading day.")
+    styles.render_section_header("Top Predicted Daily Gainers", "Highest predicted percentage increase for the next trading day")
 
-    if st.button("Calculate Top Gainers"):
+    if st.button("🚀 Calculate Top Gainers"):
         progress_bar = st.progress(0)
         status_text = st.empty()
 
@@ -366,17 +391,14 @@ elif page == "Top Daily Gainers":
             # 2. Portfolio Simulator ($100)
             st.divider()
             st.header("💰 $100 Profit Optimizer")
-            st.write("If the model were given $100 to start the next day, here is how it would optimize profit:")
 
             best = top_gainers[0]
             shares = 100 / best['current_price']
 
             if mode_code == "edge":
-                # In Edge mode, we assume a win if it hits the threshold
                 predicted_exit = best['current_price'] * 1.025
                 profit_reason = f"This ticker has a **{best['ev_overnight']*100:.2f}%** Expected Value with a **{best['pred_overnight']*100:.1f}%** probability."
             else:
-                # In Regression mode, use the predicted price
                 predicted_exit = best['pred_overnight']
                 profit_reason = f"The model predicts a **{((best['pred_overnight']-best['current_price'])/best['current_price'])*100:+.2f}%** return."
 
@@ -385,17 +407,16 @@ elif page == "Top Daily Gainers":
             margin = (profit / 100) * 100
 
             c1, c2, c3 = st.columns(3)
-            c1.metric("Optimal Ticker", best['ticker'])
-            c2.metric("Shares Purchased", f"{shares:.4f}")
-            c3.metric("Predicted Profit", f"${profit:.2f}", f"{margin:+.2f}% Margin")
+            with c1: styles.render_metric_card("Optimal Ticker", best['ticker'], color="green")
+            with c2: styles.render_metric_card("Shares Purchased", f"{shares:.4f}", f"@ ${best['current_price']:.2f}")
+            with c3: styles.render_metric_card("Predicted Profit", f"${profit:.2f}", f"{margin:+.2f}% Margin", "warn")
 
             st.info(f"**Strategy:** Buy **{shares:.4f}** shares of **{best['ticker']}** at **${best['current_price']:.2f}**. " + profit_reason)
         else:
             st.error("Could not retrieve gainer data.")
 
 elif page == "Trading Education":
-    st.title("📚 Trading Education & Pattern Guide")
-    st.write("Master the art of reading charts and identifying profitable patterns.")
+    styles.render_section_header("Trading Education & Pattern Guide", "Master the art of reading charts and identifying profitable patterns")
 
     st.markdown(info.GENERAL_TRENDS)
 
